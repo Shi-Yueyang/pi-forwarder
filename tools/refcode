@@ -1,0 +1,243 @@
+#include <stdio.h>
+#include <WinSock2.h>
+#include <Windows.h>
+#include <WS2tcpip.h>
+
+#include <iostream>
+#include <sstream>
+#include <string>
+#include<cstdint>
+#include<chrono>
+
+
+#include "SimpleIni.h"
+
+#pragma comment(lib,"Ws2_32.lib")
+#pragma comment(lib,"winmm.lib")
+
+using namespace std;
+extern "C" {
+
+#include "GM_RSSP1_APP_Interface.h"
+}
+GM_RSSP1_UINT16 GetAbas()
+{
+    return ABAS_Type_A_AS;
+}
+
+unsigned int ReadUnsignedIntFromIni(CSimpleIniA& Ini, string section, string key, string defaultValue)
+{
+    unsigned int result;
+    const char* val = Ini.GetValue(section.c_str(), key.c_str(), defaultValue.c_str());
+
+    stringstream ss;
+    if (strlen(val) > 2 && val[0] == '0' && (val[1] == 'x' || val[1] == 'X'))
+    {
+        ss << hex << val;
+    }
+    else
+    {
+        ss << dec << val;
+    }
+    ss >> result;
+
+
+    return result;
+}
+
+enum class UdpError {
+    None,
+    InvalidAddress,
+    SocketCreateFailed,
+    SocketSendFailed,
+    SocketReceivedTimeout,
+    SocketReceivedFailed
+};
+
+SOCKET CreateUdpSocket(int port, int timeOut)
+{
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 1), &wsaData) != 0) {
+        return INVALID_SOCKET;
+    }
+    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+    int timeout = 30;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+    sockaddr_in serverAddr{};
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(port);
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    int bindRes = bind(sock, (sockaddr*)&serverAddr, sizeof(serverAddr));
+    if (bindRes == SOCKET_ERROR) {
+        cerr << "bind to port " << port << "failed, error = "<<WSAGetLastError() << endl;
+    }
+    return sock;
+}
+
+UdpError UdpSend(SOCKET& sock, const char* destIp, uint16_t destPort, unsigned char* data, int len ) {
+    sockaddr_in dest{};
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(destPort);
+    if (inet_pton(AF_INET, destIp, &dest.sin_addr) != 1) {
+        return UdpError::InvalidAddress;
+    }
+    int sent = sendto(sock, reinterpret_cast<const char*>(data), len, 0,(sockaddr*)&dest, sizeof(dest));
+    if (sent == SOCKET_ERROR) {
+        return UdpError::SocketCreateFailed;
+    }
+    return UdpError::None;
+
+}
+
+UdpError UdpReceive(SOCKET& sock, 
+    unsigned char* buffer, 
+    int bufferSize, 
+    int& byteReceived, 
+    sockaddr_in* senderAddr = nullptr, 
+    int* senderLen= nullptr) {
+    sockaddr_in from{};
+    int fromLen = sizeof(from);
+    int bytes = recvfrom(sock, reinterpret_cast<char*>(buffer), bufferSize, 0, reinterpret_cast<sockaddr*>(&from), &fromLen);
+    byteReceived = bytes;
+    if (bytes == SOCKET_ERROR) {
+        int err = WSAGetLastError();
+        if (err == WSAETIMEDOUT) {
+            return UdpError::SocketReceivedTimeout;
+        }
+        else {
+            return UdpError::SocketReceivedFailed;
+        }
+    }
+    if (senderAddr) {
+        *senderAddr = from;
+    }
+    if (senderLen) {
+        *senderLen = fromLen;
+    }
+    return UdpError::None;
+}
+
+int main(int argc, char* argv[])
+{
+    using clock = chrono::steady_clock;
+    auto start = clock::now();
+
+    const char* filename = (argc > 1) ? argv[1] : "node1.ini";
+    CSimpleIniA ini;
+    ini.SetUnicode();
+    SI_Error rc = ini.LoadFile(filename);
+
+    unsigned int main_cycle = ReadUnsignedIntFromIni(ini, "RSSP1_GLOBAL", "main_cycle", "500"); 
+    unsigned int source_device = ReadUnsignedIntFromIni(ini, "RSSP1_GLOBAL", "source_addr", "1");
+    unsigned int dest_device = ReadUnsignedIntFromIni(ini, "CON_0", "dest_addr", "1");;
+    unsigned int local_rssp1_port = ReadUnsignedIntFromIni(ini, "CON_0", "local_port_0", "8001");;
+    unsigned int local_raw_data_port = ReadUnsignedIntFromIni(ini, "RAW", "local_raw_data_port", "8002");
+    const char* remote_raw_data_ip = ini.GetValue("RAW", "remote_raw_data_ip", "127.0.0.1");
+    unsigned int remote_raw_data_port = ReadUnsignedIntFromIni(ini, "RAW", "remote_remote_data_port", "8003");
+
+    cout << "===== raw --- rsssp1 =====" << endl;
+    cout << " Source Device ID: 0x" <<std::hex<< source_device << std::endl;
+    cout << " Dest Device ID: 0x" << std::hex << dest_device << std::endl;
+    cout << std::dec;
+    cout << " Main cycle(ms): "  << main_cycle << std::endl;
+    cout << " Local rssp1 port: " << local_rssp1_port << endl;
+    cout << " Local raw data port: " << local_raw_data_port << endl;
+    cout << " remote raw data ip: " << remote_raw_data_ip << endl;
+    cout << " remote raw data port: " << remote_raw_data_port << endl;
+
+
+    SOCKET local_rssp1_socket = CreateUdpSocket(local_rssp1_port, 100);
+    SOCKET local_raw_data_socket = CreateUdpSocket(local_raw_data_port, 100);
+
+
+    GM_RSSP1_Set_LogLevel(2);
+    bool res = GM_RSSP1_APP_Interface_Init(GetAbas,(char*)filename , GM_RSSP1_TRUE, NULL);
+
+    if (!res) {
+        cerr << "Rssp1 init failed" << endl;
+        return -1;
+    }
+
+
+    const double period_ms = main_cycle;
+    const double period_s = period_ms / 1000.0;
+    timeBeginPeriod(1);
+    LARGE_INTEGER freq;
+    QueryPerformanceFrequency(&freq);
+    LARGE_INTEGER next;
+    QueryPerformanceCounter(&next);
+
+
+    while (1) {
+
+        // 1. rssp1 receive
+        sockaddr_in rssp1ClientAddr{};
+        int rssp1ClientLen = sizeof(rssp1ClientAddr);
+        unsigned char rssp1RecvBuf[1024];
+        int rssp1ByteReceived = 0;
+        if (UdpError::None == UdpReceive(local_rssp1_socket, rssp1RecvBuf, sizeof(rssp1RecvBuf), rssp1ByteReceived, &rssp1ClientAddr, &rssp1ClientLen)){
+            if (GM_RSSP1_RCV_com_Interface(rssp1RecvBuf, rssp1ByteReceived,rssp1ClientAddr.sin_addr.s_addr, ntohs(rssp1ClientAddr.sin_port), 0, 0, 1)) {
+                GM_RSSP1_CFM_Interface_Proc_Recv();
+                GM_RSSP1_SFM_Interface_Proc_Recv();
+                GM_RSSP1_UINT32 src = 0;
+                GM_RSSP1_INT32 cnt = 0;
+                int bufLen = 0;
+                if (GM_RSSP1_APP_Interface_Rcv_App_Dat((unsigned char*)rssp1RecvBuf, &src, (GM_RSSP1_UINT32*)(&bufLen), &cnt)) {
+                    // 2. raw data send
+                    if (bufLen > 14) {
+                        printf("<- len raw= %d\n", bufLen-6);
+                        UdpSend(local_raw_data_socket, remote_raw_data_ip, remote_raw_data_port, (unsigned char*)(rssp1RecvBuf+6), bufLen-6);
+                    }
+                }
+            }
+        }
+
+        sockaddr_in rawClientAddr{};
+        int rawClientLen = sizeof(rawClientAddr);
+        unsigned char rawRecvBuf[1024];
+        int rawByteReceived = 0;
+        // 3. raw data receive
+        if (UdpError::None == UdpReceive(local_raw_data_socket, rawRecvBuf, sizeof(rawRecvBuf), rawByteReceived, &rawClientAddr, &rawClientLen)) {
+            
+            // 4. rssp1 send
+            res = GM_RSSP1_APP_Interface_Send_App_Dat(rawRecvBuf, rawByteReceived, (GM_RSSP1_UINT16)dest_device);
+            GM_RSSP1_SFM_Interface_Proc_Send();
+            GM_RSSP1_CFM_Interface_Proc_Send();
+            GM_RSSP1_UINT32 port = 0;
+            GM_RSSP1_UINT32 ip = 0;
+            GM_RSSP1_UINT16 len = 0;
+            GM_RSSP1_UINT16 index = 0;
+            GM_RSSP1_UINT8 chn_index = 0;
+            bool isRssp1SendReady = GM_RSSP1_SND_com_Interface(rawRecvBuf, &len, &ip, &port, &index, &chn_index);
+
+            if (isRssp1SendReady) {
+                printf("-> len raw= %d\n", rawByteReceived);
+
+                in_addr temp_ip;
+                temp_ip.s_addr = ip;
+                UdpSend(local_rssp1_socket, inet_ntoa(temp_ip), port, rawRecvBuf, len);
+            }
+        }
+
+        next.QuadPart += static_cast<LONGLONG>(freq.QuadPart * period_s);
+        while (true) {
+            LARGE_INTEGER now;
+            QueryPerformanceCounter(&now);
+            double remaining_ms = (next.QuadPart - now.QuadPart) * 1000.0 / freq.QuadPart;
+            if (remaining_ms <= 0) {
+                break;
+            }
+            if (remaining_ms > 5) {
+                Sleep(static_cast<DWORD>(remaining_ms - 1));
+            }
+            else {
+                Sleep(0);
+            }
+        }
+
+        //auto now = clock::now();
+        //chrono::duration<double> elapsed = now - start;
+        //cout << "elapsed " << elapsed.count() << endl;
+
+    }                               
+}

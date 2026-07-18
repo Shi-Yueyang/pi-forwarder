@@ -1,0 +1,63 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs2022-base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_C_STANDARD": "11",
+        "CMAKE_CXX_STANDARD": "17",
+        "PI_FORWARDER_ENABLE_VENDOR_RSSP1": "OFF"
+      }
+    },
+    {
+      "name": "vs2022-debug",
+      "displayName": "VS2022 Debug",
+      "description": "Open and build the placeholder forwarder in Visual Studio 2022.",
+      "inherits": "vs2022-base"
+    },
+    {
+      "name": "vs2022-release",
+      "displayName": "VS2022 Release",
+      "description": "Release preset for Visual Studio 2022.",
+      "inherits": "vs2022-base"
+    },
+    {
+      "name": "vs2022-debug-vendor-rssp1",
+      "displayName": "VS2022 Debug With Vendor RSSP1",
+      "description": "Attempts to build the vendored RSSP1 sources in Visual Studio 2022.",
+      "inherits": "vs2022-base",
+      "cacheVariables": {
+        "PI_FORWARDER_ENABLE_VENDOR_RSSP1": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-vs2022-debug",
+      "configurePreset": "vs2022-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "build-vs2022-release",
+      "configurePreset": "vs2022-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "build-vs2022-debug-vendor-rssp1",
+      "configurePreset": "vs2022-debug-vendor-rssp1",
+      "configuration": "Debug"
+    }
+  ]
+}
