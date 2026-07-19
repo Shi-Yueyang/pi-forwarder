@@ -24,7 +24,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Cfg_SFM_Addr(GM_RSSP1_UINT8 *pFileContent , GM_
 	}
 	
 	bRt = GM_RSSP1_Init_Comm_Global_SFM_Addr(pCfg, pFileContent, rp_file, isbinbig);
-	/* é¡ºåºä¸å¯å˜åŠ¨ã€‚åˆå§‹åŒ–å„è¿æ¥æ—¶éœ€è¦ä»SFM cfgä¸­è·å–æœ¬åœ°è¿æ¥é€šé“å…±äº«çš„ä¸€äº›é…ç½® */
+	/* Ë³Ğò²»¿É±ä¶¯¡£³õÊ¼»¯¸÷Á¬½ÓÊ±ĞèÒª´ÓSFM cfgÖĞ»ñÈ¡±¾µØÁ¬½ÓÍ¨µÀ¹²ÏíµÄÒ»Ğ©ÅäÖÃ */
 	if (GM_RSSP1_TRUE == bRt)
 	{
 		GM_RSSP1_InitSeqArray(OnLine_Object, g_Max_ConnctNum);   /* CR: 11036019*/
@@ -47,7 +47,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Cfg_SFM_Addr(GM_RSSP1_UINT8 *pFileContent , GM_
 }
 
 /* CR: 11036019*/
-GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_SFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg , GM_RSSP1_UINT8 *pFileContent, GM_RSSP1_UINT8 **r_ptr, GM_RSSP1_BOOL isbinbig)	/*CR:GM00003071æ·»åŠ è¯†åˆ«binæ–‡ä»¶å¤§å°ç«¯çš„å‚æ•°*/
+GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_SFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg , GM_RSSP1_UINT8 *pFileContent, GM_RSSP1_UINT8 **r_ptr, GM_RSSP1_BOOL isbinbig)	/*CR:GM00003071Ìí¼ÓÊ¶±ğbinÎÄ¼ş´óĞ¡¶ËµÄ²ÎÊı*/
 {
 	GM_RSSP1_BOOL rt = GM_RSSP1_FALSE;
 	GM_RSSP1_UINT32 valueInt = 0U;	
@@ -63,7 +63,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_SFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg 
 		return GM_RSSP1_FALSE;
 	}
 
-	/* RSSP1_GLOBAL å…¨å±€é…ç½® */
+	/* RSSP1_GLOBAL È«¾ÖÅäÖÃ */
 	valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 	pCfg->SFM_cfg.lobalInfoStruct.main_cycle = (GM_RSSP1_UINT32)valueInt;
@@ -113,7 +113,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_SFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg 
 	pCfg->SFM_cfg.L2U_pri_Q_size = valueInt;
 
 
-	/**> å¢åŠ å¯¹Max_ConnectNumå¯é€‰å­—æ®µçš„è¯»å…¥ @63343 */
+	/**> Ôö¼Ó¶ÔMax_ConnectNum¿ÉÑ¡×Ö¶ÎµÄ¶ÁÈë @63343 */
 	valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 	
@@ -142,14 +142,14 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_SFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg 
 
 
 
-	/**> å¢åŠ å¯¹CFM_U2L_Q_Size_per_connectionå¯é€‰å­—æ®µçš„è¯»å…¥ @63343 */
+	/**> Ôö¼Ó¶ÔCFM_U2L_Q_Size_per_connection¿ÉÑ¡×Ö¶ÎµÄ¶ÁÈë @63343 */
 	valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 #ifndef CFM_Part
 	pCfg->SFM_cfg.U2L_pri_Q_size_CFM = valueInt;
 #endif
 	
-	/**> å¢åŠ å¯¹L2U_pri_Q_size_CFMçš„è¯»å…¥ @63343 */
+	/**> Ôö¼Ó¶ÔL2U_pri_Q_size_CFMµÄ¶ÁÈë @63343 */
 	valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 #ifndef CFM_Part
@@ -157,7 +157,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_SFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg 
 #endif
 
 
-	if (isbig != isbinbig)/*è‹¥ç³»ç»Ÿå¤§å°ç«¯ ä¸ binæ–‡ä»¶å¤§å°ç«¯ä¸ä¸€è‡´*/
+	if (isbig != isbinbig)/*ÈôÏµÍ³´óĞ¡¶Ë Óë binÎÄ¼ş´óĞ¡¶Ë²»Ò»ÖÂ*/
 	{
 		pCfg->SFM_cfg.lobalInfoStruct.main_cycle = GM_RSSP1_Code_Big_Little_Endian32((GM_RSSP1_UINT32)(pCfg->SFM_cfg.lobalInfoStruct.main_cycle));
 
@@ -206,13 +206,13 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM_Addr(GM_RSSP1_comm_cfg_struct *p
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 	pSFM_conn_cfg->fsfb_comm_cycle = (GM_RSSP1_UINT32)valueInt;
 
-	/**> å¢åŠ main_cycleå¯é€‰å­—æ®µ @63343*/  /* CR:GM00007617 */
+	/**> Ôö¼Ómain_cycle¿ÉÑ¡×Ö¶Î @63343*/  /* CR:GM00007617 */
 	valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 	pSFM_conn_cfg->main_cycle = (GM_RSSP1_UINT32)valueInt;  
 
 
-	/**> å¢åŠ source_addrå¯é€‰å­—æ®µ @63343*/   /* CR:GM00007617 */
+	/**> Ôö¼Ósource_addr¿ÉÑ¡×Ö¶Î @63343*/   /* CR:GM00007617 */
 	valueInt = *(GM_RSSP1_UINT16*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT16);
 	pSFM_conn_cfg->source_addr = (GM_RSSP1_UINT16)valueInt;
@@ -245,7 +245,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM_Addr(GM_RSSP1_comm_cfg_struct *p
 
 	for (i=0U; i<GM_RSSP1_CHECK_CHN_NUM; i++)
 	{
-		/**> å¢åŠ local_sys_chkå¯é€‰å­—æ®µ @63343*/
+		/**> Ôö¼Ólocal_sys_chk¿ÉÑ¡×Ö¶Î @63343*/
 		if (GM_RSSP1_SFM_Bin_MultLoc == g_InitMode)
 		{
 			valueInt = *(GM_RSSP1_UINT32*)pFileContent;
@@ -259,18 +259,18 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM_Addr(GM_RSSP1_comm_cfg_struct *p
 			pSFM_conn_cfg->fsfb_chn_cfg[i].local_sys_chk = ~valueInt;
 		}
 
-		/**> å¢åŠ local_sidå¯é€‰å­—æ®µ @63343*/
+		/**> Ôö¼Ólocal_sid¿ÉÑ¡×Ö¶Î @63343*/
 		valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 		pFileContent += sizeof(GM_RSSP1_UINT32);
 		pSFM_conn_cfg->fsfb_chn_cfg[i].local_sid = valueInt;
 
-		/**> å¢åŠ local_sinitå¯é€‰å­—æ®µ @63343*/
+		/**> Ôö¼Ólocal_sinit¿ÉÑ¡×Ö¶Î @63343*/
 		valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 		pFileContent += sizeof(GM_RSSP1_UINT32);
 		pSFM_conn_cfg->fsfb_chn_cfg[i].local_sinit = valueInt;
 
 		
-		/**> å¢åŠ local_dataVerå¯é€‰å­—æ®µ @63343*/
+		/**> Ôö¼Ólocal_dataVer¿ÉÑ¡×Ö¶Î @63343*/
 		valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 		pFileContent += sizeof(GM_RSSP1_UINT32);
 		pSFM_conn_cfg->fsfb_chn_cfg[i].local_dataVer = valueInt;
@@ -292,7 +292,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM_Addr(GM_RSSP1_comm_cfg_struct *p
 
 	
 
-	/* å¯¹ç­‰è®¾å¤‡å„ä¸ªUDPé€šé“å‡ä½¿ç”¨ç‹¬ç«‹çš„FSFBã€‚æ­¤æ—¶UDPé€šé“æ•°å¿…é¡»ä¸º1 */
+	/* ¶ÔµÈÉè±¸¸÷¸öUDPÍ¨µÀ¾ùÊ¹ÓÃ¶ÀÁ¢µÄFSFB¡£´ËÊ±UDPÍ¨µÀÊı±ØĞëÎª1 */
 	valueInt = *(GM_RSSP1_BOOL*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_BOOL);
 	if (isbig != isbinbig)
@@ -333,7 +333,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM_Addr(GM_RSSP1_comm_cfg_struct *p
 		pFileContent += sizeof(GM_RSSP1_UINT32)*2U;
 	}
 
-	/**> å¢åŠ remote_dev_ABå¯é€‰å­—æ®µ @63343*/
+	/**> Ôö¼Óremote_dev_AB¿ÉÑ¡×Ö¶Î @63343*/
 	valueInt = *(GM_RSSP1_UINT16*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT16);
 	if (isbig != isbinbig)
@@ -356,7 +356,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM_Addr(GM_RSSP1_comm_cfg_struct *p
 
 
 
-	/**> å¢åŠ IsFixNodeå¯é€‰å­—æ®µ @63343*/
+	/**> Ôö¼ÓIsFixNode¿ÉÑ¡×Ö¶Î @63343*/
 	valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 	if (isbig != isbinbig)
@@ -407,7 +407,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM_Addr(GM_RSSP1_comm_cfg_struct *p
 	return GM_RSSP1_TRUE;
 }
 
-GM_RSSP1_BOOL GM_RSSP1_SFM_Init_Addr(GM_RSSP1_UINT8 *addr, GM_RSSP1_BOOL isbinbig)	/*CR:GM00003071æ·»åŠ è¯†åˆ«binæ–‡ä»¶å¤§å°ç«¯çš„å‚æ•°isbinbig*/
+GM_RSSP1_BOOL GM_RSSP1_SFM_Init_Addr(GM_RSSP1_UINT8 *addr, GM_RSSP1_BOOL isbinbig)	/*CR:GM00003071Ìí¼ÓÊ¶±ğbinÎÄ¼ş´óĞ¡¶ËµÄ²ÎÊıisbinbig*/
 {
 	GM_RSSP1_comm_cfg_struct fsfb_cfg ;
 	GM_RSSP1_SFM_object_struct *pSFM = NULL;
@@ -418,7 +418,7 @@ GM_RSSP1_BOOL GM_RSSP1_SFM_Init_Addr(GM_RSSP1_UINT8 *addr, GM_RSSP1_BOOL isbinbi
 
 	if ((NULL != addr) || (NULL != pSFM))
 	{
-		if (is_boot == GM_RSSP1_FALSE)/**ç”±äºé…ç½®æ•°æ®å…è®¸å¢åˆ æ“ä½œ,åªæœ‰åœ¨ç¬¬ä¸€æ¬¡åŠ è½½æ˜¯è¿›è¡Œæ•°æ®å¤ä½åŒ…æ‹¬Hashè¡¨**/
+		if (is_boot == GM_RSSP1_FALSE)/**ÓÉÓÚÅäÖÃÊı¾İÔÊĞíÔöÉ¾²Ù×÷,Ö»ÓĞÔÚµÚÒ»´Î¼ÓÔØÊÇ½øĞĞÊı¾İ¸´Î»°üÀ¨Hash±í**/
 		{
 			rt = GM_RSSP1_Hash_SFM_Init();
 			if (GM_RSSP1_FALSE == rt)
@@ -435,7 +435,7 @@ GM_RSSP1_BOOL GM_RSSP1_SFM_Init_Addr(GM_RSSP1_UINT8 *addr, GM_RSSP1_BOOL isbinbi
 		rt = GM_RSSP1_Init_Comm_Cfg_SFM_Addr(addr, &fsfb_cfg, isbinbig);  /* CR:GM00007614*/
 		if (GM_RSSP1_TRUE == rt )
 		{
-			if (is_boot == GM_RSSP1_FALSE)/**ç”±äºé…ç½®æ•°æ®å…è®¸å¢åˆ æ“ä½œ,åªæœ‰åœ¨ç¬¬ä¸€æ¬¡è¿›è¡Œé˜Ÿåˆ—ç©ºé—´ç”³è¯·**/
+			if (is_boot == GM_RSSP1_FALSE)/**ÓÉÓÚÅäÖÃÊı¾İÔÊĞíÔöÉ¾²Ù×÷,Ö»ÓĞÔÚµÚÒ»´Î½øĞĞ¶ÓÁĞ¿Õ¼äÉêÇë**/
 			{
 				rt = GM_RSSP1_SFM_MQ_Init(&fsfb_cfg , pSFM);  /* CR:GM00007614*/
 				if (GM_RSSP1_TRUE == rt )

@@ -1,6 +1,6 @@
 /**
 * @file FSFB_lib_init.h
-* @brief 鍒濆鍖朏SFB妯″潡
+* @brief 初始化FSFB模块
 * @author JiangHongjun
 * @date 2010-2-7 16:23:35
 * @version
@@ -30,7 +30,7 @@ extern "C"
 		GM_RSSP1_SFM_Bin_MultLoc			   = 0x6U,
 	} GM_RSSP1_SFM_InitBinMode_enum;
     /**
-    * @brief 鍒濆鍖栦竴涓狥SFB閫氫俊妯″潡閰嶇疆鍙橀噺
+    * @brief 初始化一个FSFB通信模块配置变量
     *
     * Detailed description.
     * @param[in] init_file_path
@@ -40,7 +40,7 @@ extern "C"
     GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Cfg_SFM(GM_RSSP1_INT8 *pIniFileContent, GM_RSSP1_comm_cfg_struct *pCfg);
 
     /**
-    * @brief 鍒濆鍖朏SFB閫氫俊鐨勫叏灞�閰嶇疆
+    * @brief 初始化FSFB通信的全局配置
     *
     * Detailed description.
     * @param[in] pCfg
@@ -52,7 +52,7 @@ extern "C"
 	GM_RSSP1_BOOL GM_RSSP1_Init_ConUnderPack( GM_RSSP1_SFM_connection_cfg_struct* pSFM_conn_cfg, GM_RSSP1_INT8* section_key, GM_RSSP1_INT8 * pIniFileContent);
 
     /**
-    * @brief 鍒濆鍖朏SFB閫氫俊姣忎竴涓繛鎺ョ殑閰嶇疆
+    * @brief 初始化FSFB通信每一个连接的配置
     *
     * Detailed description.
 	* @param[in] conn_index
@@ -63,7 +63,7 @@ extern "C"
     GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_SFM(GM_RSSP1_UINT16 conn_index, GM_RSSP1_comm_cfg_struct *pCfg , GM_RSSP1_INT8 *pIniFileContent);
 
 	/**
-    * @brief  鍒濆鍖朣FM妯″潡
+    * @brief  初始化SFM模块
     *
     * Detailed description.
     * @param[in] pcfg
@@ -77,7 +77,7 @@ extern "C"
 	GM_RSSP1_BOOL GM_RSSP1_SFM_Init_Addr(GM_RSSP1_UINT8 *addr,GM_RSSP1_BOOL isbinbig);
 
 	    /**
-    * @brief 鍒濆鍖栦竴涓狥SFB閫氫俊妯″潡閰嶇疆鍙橀噺
+    * @brief 初始化一个FSFB通信模块配置变量
     *
     * Detailed description.
     * @param[in] init_file_path
@@ -87,7 +87,7 @@ extern "C"
     GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Cfg_SFM_Addr(GM_RSSP1_UINT8 *pFileContent , GM_RSSP1_comm_cfg_struct *pCfg,GM_RSSP1_BOOL isbinbig);
 
     /**
-    * @brief 鍒濆鍖朏SFB閫氫俊鐨勫叏灞�閰嶇疆
+    * @brief 初始化FSFB通信的全局配置
     *
     * Detailed description.
     * @param[in] pCfg
@@ -97,7 +97,7 @@ extern "C"
     GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_SFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg , GM_RSSP1_UINT8 *pFileContent, GM_RSSP1_UINT8 **r_ptr,GM_RSSP1_BOOL isbinbig);
 
     /**
-    * @brief 鍒濆鍖朏SFB閫氫俊姣忎竴涓繛鎺ョ殑閰嶇疆
+    * @brief 初始化FSFB通信每一个连接的配置
     *
     * Detailed description.
 	* @param[in] pCfg

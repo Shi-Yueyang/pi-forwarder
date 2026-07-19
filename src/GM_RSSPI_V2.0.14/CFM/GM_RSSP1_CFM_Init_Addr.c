@@ -8,7 +8,7 @@ extern RSSP1_MQ_LINK_struct g_Link_MQ;
 extern GM_RSSP1_Local_Con_struct g_loc_info;
 extern GM_RSSP1_UINT16 g_Max_ConnctNum;
 
-/*CR:GM00003071 æ·»åŠ æ ‡è®°binæ–‡ä»¶å¤§å°ç«¯çš„å‚æ•°*/
+/*CR:GM00003071 Ìí¼Ó±ê¼ÇbinÎÄ¼ş´óĞ¡¶ËµÄ²ÎÊı*/
 GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Cfg_CFM_Addr(GM_RSSP1_UINT8 *pFileContent, GM_RSSP1_comm_cfg_struct *pCfg,GM_RSSP1_BOOL isbinbig)
 {
 	GM_RSSP1_UINT8 **rp_file = &pFileContent;
@@ -25,7 +25,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Cfg_CFM_Addr(GM_RSSP1_UINT8 *pFileContent, GM_R
         return bRt;
     }
 
-    /* é¡ºåºä¸å¯å˜åŠ¨ã€‚åˆå§‹åŒ–å„è¿æ¥æ—¶éœ€è¦ä»SFM cfgä¸­è·å–æœ¬åœ°è¿æ¥é€šé“å…±äº«çš„ä¸€äº›é…ç½® */
+    /* Ë³Ğò²»¿É±ä¶¯¡£³õÊ¼»¯¸÷Á¬½ÓÊ±ĞèÒª´ÓSFM cfgÖĞ»ñÈ¡±¾µØÁ¬½ÓÍ¨µÀ¹²ÏíµÄÒ»Ğ©ÅäÖÃ */
 	bRt = GM_RSSP1_Init_Comm_Global_CFM_Addr(pCfg, pFileContent, rp_file, isbinbig);
 	if (GM_RSSP1_TRUE == bRt)
 	{
@@ -33,14 +33,14 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Cfg_CFM_Addr(GM_RSSP1_UINT8 *pFileContent, GM_R
 
 #ifdef SFM_Part
 		GM_RSSP1_GetSeqIndexReverse(OffLine_Object, 1U);
-		for (l_index=0U; l_index<pCfg->CFM_cfg.connection_nums; ++l_index)/**å½“SFMä¸CFMä¸€èµ·æ—¶,SFMå·²åœ¨ç¦»çº¿ç´¢å¼•é“¾è¡¨æ·»åŠ ,CFMéœ€ç´¢å¼•SFMæ‰€åœ¨é“¾è¡¨åœ°å€**/
+		for (l_index=0U; l_index<pCfg->CFM_cfg.connection_nums; ++l_index)/**µ±SFMÓëCFMÒ»ÆğÊ±,SFMÒÑÔÚÀëÏßË÷ÒıÁ´±íÌí¼Ó,CFMĞèË÷ÒıSFMËùÔÚÁ´±íµØÖ·**/
 		{
-			/**æŠŠindexé¢„å–**/
+			/**°ÑindexÔ¤È¡**/
 			arryIndex = pCfg->CFM_cfg.connection_nums-l_index-1U;
 			indexArry[arryIndex] = GM_RSSP1_GetSeqIndexReverse(OffLine_Object, 0U);
 		}
 #else
-		/*åˆå§‹åŒ–åœ¨çº¿é“¾è¡¨*/
+		/*³õÊ¼»¯ÔÚÏßÁ´±í*/
 		GM_RSSP1_InitSeqArray(OnLine_Object, g_Max_ConnctNum);  /* CR: 11036019*/
 #endif
 		GM_RSSP1_Hash_CFM_ActInit((GM_RSSP1_UINT32)g_Max_ConnctNum);   /* CR: 11036019*/
@@ -77,7 +77,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_CFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg 
         return GM_RSSP1_FALSE;
     }
 
-    /* RSSP1_GLOBAL å…¨å±€é…ç½® */
+    /* RSSP1_GLOBAL È«¾ÖÅäÖÃ */
 	valueInt = *(GM_RSSP1_UINT16*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT16);
 	if (isbig != isbinbig)
@@ -123,7 +123,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_CFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg 
 	{
 		valueInt = GM_RSSP1_Code_Big_Little_Endian32(valueInt);
 	}
-	if ((valueInt <= 0) || (valueInt > (GM_RSSP1_INT32)GM_RSSP1_MAX_USER_DAT_LEN))	/*CR:GM00004940 ä¿®æ­£ä¸ºæœ€å¤§ç”¨æˆ·æ•°æ®ï¼ŒMAX_SAFETY_DAT_LEN -22 = MAX_USER_DAT_LEN*/
+	if ((valueInt <= 0) || (valueInt > (GM_RSSP1_INT32)GM_RSSP1_MAX_USER_DAT_LEN))	/*CR:GM00004940 ĞŞÕıÎª×î´óÓÃ»§Êı¾İ£¬MAX_SAFETY_DAT_LEN -22 = MAX_USER_DAT_LEN*/
 	{
 		pCfg->CFM_cfg.all0_size = 0xFFFFFFFFU;
 	}
@@ -133,7 +133,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Global_CFM_Addr(GM_RSSP1_comm_cfg_struct *pCfg 
 	}
 
 
-	/**> å¢åŠ g_Max_ConnctNum å¯é€‰å­—æ®µ @63343*/
+	/**> Ôö¼Óg_Max_ConnctNum ¿ÉÑ¡×Ö¶Î @63343*/
 	valueInt = *(GM_RSSP1_UINT32*)pFileContent;
 	pFileContent += sizeof(GM_RSSP1_UINT32);
 
@@ -178,7 +178,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_CFM_Addr(GM_RSSP1_comm_cfg_struct *p
 		return GM_RSSP1_FALSE;
     }
 
-    /* å„ä¸ªè¿æ¥é€šé“é…ç½® */
+    /* ¸÷¸öÁ¬½ÓÍ¨µÀÅäÖÃ */
 	pCFM_conn_cfg = &(pCfg->CFM_cfg.connection_cfg);
 
 	valueInt = *(GM_RSSP1_UINT16*)pFileContent;
@@ -196,7 +196,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_CFM_Addr(GM_RSSP1_comm_cfg_struct *p
 	{
 		valueInt = GM_RSSP1_Code_Big_Little_Endian16((GM_RSSP1_UINT16)valueInt);
 	}
-	if(0U == valueInt)	/*com_type=0 ä¸å—å¤§å°ç«¯å½±å“*/
+	if(0U == valueInt)	/*com_type=0 ²»ÊÜ´óĞ¡¶ËÓ°Ïì*/
 	{
 		pCFM_conn_cfg->com_type = GM_RSSP1_CFM_COMM_TYPE_UDP;
 	}
@@ -288,7 +288,7 @@ GM_RSSP1_BOOL GM_RSSP1_Init_Comm_Connection_CFM_Addr(GM_RSSP1_comm_cfg_struct *p
     return GM_RSSP1_TRUE;
 }
 
-GM_RSSP1_BOOL GM_RSSP1_CFM_Init_Addr(GM_RSSP1_UINT8 *addr,GM_RSSP1_BOOL isbinbig)	/*jcfï¼šæ·»åŠ binæ–‡ä»¶å¤§å°ç«¯è¯†åˆ«å‚æ•°isbinbig*/
+GM_RSSP1_BOOL GM_RSSP1_CFM_Init_Addr(GM_RSSP1_UINT8 *addr,GM_RSSP1_BOOL isbinbig)	/*jcf£ºÌí¼ÓbinÎÄ¼ş´óĞ¡¶ËÊ¶±ğ²ÎÊıisbinbig*/
 {
 	GM_RSSP1_CFM_object_struct *pCFM = NULL;
 	GM_RSSP1_comm_cfg_struct fsfb_cfg;
@@ -299,7 +299,7 @@ GM_RSSP1_BOOL GM_RSSP1_CFM_Init_Addr(GM_RSSP1_UINT8 *addr,GM_RSSP1_BOOL isbinbig
 
 	if ((NULL != addr)||(pCFM != NULL))
 	{
-		if (is_boot == GM_RSSP1_FALSE)/**ç”±äºé…ç½®æ•°æ®å…è®¸å¢åˆ æ“ä½œ,åªæœ‰åœ¨ç¬¬ä¸€æ¬¡åŠ è½½æ˜¯è¿›è¡Œæ•°æ®å¤ä½åŒ…æ‹¬Hashè¡¨**/
+		if (is_boot == GM_RSSP1_FALSE)/**ÓÉÓÚÅäÖÃÊı¾İÔÊĞíÔöÉ¾²Ù×÷,Ö»ÓĞÔÚµÚÒ»´Î¼ÓÔØÊÇ½øĞĞÊı¾İ¸´Î»°üÀ¨Hash±í**/
 		{
 			GM_RSSP1_Hash_CFM_Init();
 			GM_RSSP1_memset((void*)pCFM, 0U, sizeof(GM_RSSP1_CFM_object_struct));

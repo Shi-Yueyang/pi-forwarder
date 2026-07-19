@@ -19,7 +19,7 @@ extern "C"
     struct _GM_RSSP1_TIME_
     {
         /*
-         SEM_ID  semMTime;     / *‰∫íÊñ•‰ø°Âè∑Èáè* /
+         SEM_ID  semMTime;     / *ª•≥‚–≈∫≈¡ø* /
         */
         GM_RSSP1_UINT32 *left_tab[GM_RSSP1_CHECK_CHN_NUM];
         GM_RSSP1_UINT32  TC;

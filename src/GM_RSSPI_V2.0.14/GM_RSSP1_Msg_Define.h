@@ -1,6 +1,6 @@
 /**
 * @file GM_RSSP1_Msg_Define.h
-* @brief RSSP1涓畾涔夌殑娑堟伅缁撴瀯銆傚弬鑰僐SSP-I V0.1
+* @brief RSSP1中定义的消息结构。参考RSSP-I V0.1
 * @author JiangHongjun
 * @date 2010-2-7 16:24:25
 * @version
@@ -42,7 +42,7 @@ extern "C"
 
 	#define RSSP1_SSE_FRAME_LEN_WITH_CRC    20U
 	#define RSSP1_SSR_FRAME_LEN_WITH_CRC    25U
-	#define RSSP1_RSD_FRAME_LEN_WITHOUT_USERDAT 22U  /* RSD闀垮害 = RSSP1_RSD_FRAME_LEN_WITHOUT_USERDAT + USERDAT */
+	#define RSSP1_RSD_FRAME_LEN_WITHOUT_USERDAT 22U  /* RSD长度 = RSSP1_RSD_FRAME_LEN_WITHOUT_USERDAT + USERDAT */
 	#define RSSP1_MAX_RSD_LEN   545U
 
 #ifdef __cplusplus

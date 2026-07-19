@@ -11,7 +11,7 @@
 #define GM_RSSP1_VSN_Error (((GM_RSSP1_UINT32)GM_RSSP1_Error<<8U)+0x21U)				/*0xE121*/
 #define GM_RSSP1_Other_Error (((GM_RSSP1_UINT32)GM_RSSP1_Error<<8U)+0x31U)			/*0xE131*/
 
-/*é”™è¯¯ç±»åž‹*/
+/*´íÎóÀàÐÍ*/
 #define Param_Error (GM_RSSP1_UINT32)0x10U
 #define Param_Point_Error (GM_RSSP1_UINT32)0x11U
 #define Param_Val_Error (GM_RSSP1_UINT32)0x12U
@@ -476,70 +476,70 @@
 #define GM_RSSP1_APP_Interface_RxPrc_Num ((GM_RSSP1_Init_Error<<8U)+0x46U)   /*0xE10146*/
 #define GM_RSSP1_APP_Interface_RxPrc_Point_Match_Error  ((GM_RSSP1_APP_Interface_RxPrc_Num<<8U)+ Result_No_Match)  /*0xE1014620*/
 
-/******************FILEéƒ¨åˆ†,é”™è¯¯å·ä¸º0xE111XXXX****************/
+/******************FILE²¿·Ö,´íÎóºÅÎª0xE111XXXX****************/
 /**GM_RSSP1_Bin_File_Load(),0xE11101XX**/
-#define  GM_RSSP1_BIN_FILE_LOAD_PAR_ERR		0xE1110100U			/*GM_RSSP1_Bin_File_Loadä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define  GM_RSSP1_BIN_FILE_LOAD_OPEN_ERR		0xE1110101U			/*GM_RSSP1_Bin_File_Loadæ‰“å¼€æ–‡ä»¶å¤±è´¥*/
-#define  GM_RSSP1_BIN_FILE_LOAD_LEN_ERR		0xE1110102U			/*GM_RSSP1_Bin_File_Loadæ–‡ä»¶é•¿åº¦é”™è¯¯*/
-#define  GM_RSSP1_BIN_FILE_LOAD_READ_ERR		0xE1110103U			/*GM_RSSP1_Bin_File_Loadè¯»å–å†…å®¹å¤±è´¥*/
-#define  GM_RSSP1_BIN_FILE_LOAD_CLOSE_ERR		0xE1110104U			/*GM_RSSP1_Bin_File_Loadå…³é—­æ–‡ä»¶å¤±è´¥*/
+#define  GM_RSSP1_BIN_FILE_LOAD_PAR_ERR		0xE1110100U			/*GM_RSSP1_Bin_File_Load´«Èë²ÎÊýÓÐÎó*/
+#define  GM_RSSP1_BIN_FILE_LOAD_OPEN_ERR		0xE1110101U			/*GM_RSSP1_Bin_File_Load´ò¿ªÎÄ¼þÊ§°Ü*/
+#define  GM_RSSP1_BIN_FILE_LOAD_LEN_ERR		0xE1110102U			/*GM_RSSP1_Bin_File_LoadÎÄ¼þ³¤¶È´íÎó*/
+#define  GM_RSSP1_BIN_FILE_LOAD_READ_ERR		0xE1110103U			/*GM_RSSP1_Bin_File_Load¶ÁÈ¡ÄÚÈÝÊ§°Ü*/
+#define  GM_RSSP1_BIN_FILE_LOAD_CLOSE_ERR		0xE1110104U			/*GM_RSSP1_Bin_File_Load¹Ø±ÕÎÄ¼þÊ§°Ü*/
 
 /**GM_RSSP1_Ini_File_Load(),0xE11102XX**/
-#define  GM_RSSP1_INI_FILE_LOAD_PAR_ERR			0xE1110200U			/*GM_RSSP1_Ini_File_Loadä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define  GM_RSSP1_INI_FILE_LOAD_OPEN_ERR			0xE1110201U			/*GM_RSSP1_Ini_File_Loadæ‰“å¼€æ–‡ä»¶å¤±è´¥*/
-#define  GM_RSSP1_INI_FILE_LOAD_CONTENT_ERR		0xE1110202U			/*GM_RSSP1_Ini_File_Loadè¯»å–å†…å®¹è¿‡å¤š*/
-#define  GM_RSSP1_INI_FILE_LOAD_CLOSE_ERR			0xE1110203U			/*GM_RSSP1_Ini_File_Loadå…³é—­æ–‡ä»¶å¤±è´¥*/
+#define  GM_RSSP1_INI_FILE_LOAD_PAR_ERR			0xE1110200U			/*GM_RSSP1_Ini_File_Load´«Èë²ÎÊýÓÐÎó*/
+#define  GM_RSSP1_INI_FILE_LOAD_OPEN_ERR			0xE1110201U			/*GM_RSSP1_Ini_File_Load´ò¿ªÎÄ¼þÊ§°Ü*/
+#define  GM_RSSP1_INI_FILE_LOAD_CONTENT_ERR		0xE1110202U			/*GM_RSSP1_Ini_File_Load¶ÁÈ¡ÄÚÈÝ¹ý¶à*/
+#define  GM_RSSP1_INI_FILE_LOAD_CLOSE_ERR			0xE1110203U			/*GM_RSSP1_Ini_File_Load¹Ø±ÕÎÄ¼þÊ§°Ü*/
 
-/**GM_RSSP1_Ini_File_Read_String()ï¼Œ0xE11103XX**/
-#define  GM_RSSP1_INI_FILE_READ_STRING_PAR_ERR		0xE1110300U			/*GM_RSSP1_Ini_File_Read_Stringä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define  GM_RSSP1_INI_FILE_READ_STRING_NOT_FIND_ERR	0xE1110301U			/*GM_RSSP1_Ini_File_Read_Stringæ²¡æœ‰æ‰¾åˆ°key*/
-#define  GM_RSSP1_INI_FILE_READ_STRING_SIZE_ERR		0xE1110302U			/*GM_RSSP1_Ini_File_Read_Stringä¼ å…¥çš„sizeå¤ªå°*/
+/**GM_RSSP1_Ini_File_Read_String()£¬0xE11103XX**/
+#define  GM_RSSP1_INI_FILE_READ_STRING_PAR_ERR		0xE1110300U			/*GM_RSSP1_Ini_File_Read_String´«Èë²ÎÊýÓÐÎó*/
+#define  GM_RSSP1_INI_FILE_READ_STRING_NOT_FIND_ERR	0xE1110301U			/*GM_RSSP1_Ini_File_Read_StringÃ»ÓÐÕÒµ½key*/
+#define  GM_RSSP1_INI_FILE_READ_STRING_SIZE_ERR		0xE1110302U			/*GM_RSSP1_Ini_File_Read_String´«ÈëµÄsizeÌ«Ð¡*/
 
 /**GM_RSSP1_Ini_File_Read_Int(),0xE11104XX**/
-#define  GM_RSSP1_INI_FILE_READ_INT_PAR_ERR			0xE1110400U			/*GM_RSSP1_Ini_File_Read_Intä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define  GM_RSSP1_INI_FILE_READ_INT_STRING_ERR		0xE1110401U			/*GM_RSSP1_Ini_File_Read_Stringè¿”å›žå¤±è´¥*/
-#define  GM_RSSP1_INI_FILE_READ_INT_ATOI_ERR			0xE1110402U			/*GM_atoiè¿”å›žå¤±è´¥*/
+#define  GM_RSSP1_INI_FILE_READ_INT_PAR_ERR			0xE1110400U			/*GM_RSSP1_Ini_File_Read_Int´«Èë²ÎÊýÓÐÎó*/
+#define  GM_RSSP1_INI_FILE_READ_INT_STRING_ERR		0xE1110401U			/*GM_RSSP1_Ini_File_Read_String·µ»ØÊ§°Ü*/
+#define  GM_RSSP1_INI_FILE_READ_INT_ATOI_ERR			0xE1110402U			/*GM_atoi·µ»ØÊ§°Ü*/
 
 /**GM_RSSP1_Ini_File_Read_BOOL(),0xE11105XX**/
-#define  GM_RSSP1_INI_FILE_READ_BOOL_PAR_ERR			0xE1110500U			/*GM_RSSP1_Ini_File_Read_BOOLä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define  GM_RSSP1_INI_FILE_READ_BOOL_VALUE_ERR		0xE1110501U			/*è¯»å‡ºçš„å€¼ä¸æ˜¯BOOLç±»åž‹*/
-#define  GM_RSSP1_INI_FILE_READ_BOOL_READ_ERR			0xE1110502U			/*GM_RSSP1_Ini_File_Read_Intè¿”å›žå¤±è´¥*/
+#define  GM_RSSP1_INI_FILE_READ_BOOL_PAR_ERR			0xE1110500U			/*GM_RSSP1_Ini_File_Read_BOOL´«Èë²ÎÊýÓÐÎó*/
+#define  GM_RSSP1_INI_FILE_READ_BOOL_VALUE_ERR		0xE1110501U			/*¶Á³öµÄÖµ²»ÊÇBOOLÀàÐÍ*/
+#define  GM_RSSP1_INI_FILE_READ_BOOL_READ_ERR			0xE1110502U			/*GM_RSSP1_Ini_File_Read_Int·µ»ØÊ§°Ü*/
 
-/*********************VSNéƒ¨åˆ†,é”™è¯¯å·ä¸º0xE121XXXX******************/
+/*********************VSN²¿·Ö,´íÎóºÅÎª0xE121XXXX******************/
 /**GM_RSSP1_VSN_Init(),0xE12101XX**/
-#define GM_RSSP1_VSN_INIT_LFSR_1_ERR			0xE1210100U		/*GM_RSSP1_LFSR_Inité€šé“1è¿”å›žå¤±è´¥*/
-#define GM_RSSP1_VSN_INIT_LFSR_2_ERR			0xE1210101U		/*GM_RSSP1_LFSR_Inité€šé“2è¿”å›žå¤±è´¥*/
+#define GM_RSSP1_VSN_INIT_LFSR_1_ERR			0xE1210100U		/*GM_RSSP1_LFSR_InitÍ¨µÀ1·µ»ØÊ§°Ü*/
+#define GM_RSSP1_VSN_INIT_LFSR_2_ERR			0xE1210101U		/*GM_RSSP1_LFSR_InitÍ¨µÀ2·µ»ØÊ§°Ü*/
 
-/*********************OTHERéƒ¨åˆ†,é”™è¯¯å·ä¸º0xE131XXXX******************/
+/*********************OTHER²¿·Ö,´íÎóºÅÎª0xE131XXXX******************/
 /**GM_atoui(),0xE13101XX**/
-#define GM_RSSP1_ATOUI_PAR_ERR					0xE1310100U				/*GM_RSSP1_atoui()ä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define GM_RSSP1_ATOUI_BUFSIZE_ZERO_ERR			0xE1310101U				/*GM_RSSP1_atoui()ä¼ å…¥bufsizeä¸º0*/
-#define GM_RSSP1_ATOUI_BUFSIZE_BITTOMAX_ERR		0xE1310102U				/*GM_RSSP1_atoui()ä¼ å…¥bufsizeä½æ•°è¶…å‡ºæœ€å¤§å€¼*/
-#define GM_RSSP1_ATOUI_BUFSIZE_CHAR_ERR			0xE1310103U				/*å½“å‰å­—ç¬¦ä¸æ˜¯æ•°å­—*/
-#define GM_RSSP1_ATOUI_BUFSIZE_RTTOMAX_ERR		0xE1310104U				/*ä¼ å…¥bufå¤§äºŽ"4294967295"*/
-#define GM_RSSP1_ATOUI_BUFSIZE_2OO3_ERR			0xE1310105U				/*2OO3ä¸æ”¯æŒä½¿ç”¨*/
+#define GM_RSSP1_ATOUI_PAR_ERR					0xE1310100U				/*GM_RSSP1_atoui()´«Èë²ÎÊýÓÐÎó*/
+#define GM_RSSP1_ATOUI_BUFSIZE_ZERO_ERR			0xE1310101U				/*GM_RSSP1_atoui()´«ÈëbufsizeÎª0*/
+#define GM_RSSP1_ATOUI_BUFSIZE_BITTOMAX_ERR		0xE1310102U				/*GM_RSSP1_atoui()´«ÈëbufsizeÎ»Êý³¬³ö×î´óÖµ*/
+#define GM_RSSP1_ATOUI_BUFSIZE_CHAR_ERR			0xE1310103U				/*µ±Ç°×Ö·û²»ÊÇÊý×Ö*/
+#define GM_RSSP1_ATOUI_BUFSIZE_RTTOMAX_ERR		0xE1310104U				/*´«Èëbuf´óÓÚ"4294967295"*/
+#define GM_RSSP1_ATOUI_BUFSIZE_2OO3_ERR			0xE1310105U				/*2OO3²»Ö§³ÖÊ¹ÓÃ*/
 
 /**GM_atoi(),0xE13102XX**/
-#define GM_RSSP1_ATOI_PAR_ERR						0xE1310200U				/*GM_RSSP1_atoi()ä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define GM_RSSP1_ATOI_BUFSIZE_ZERO_ERR			0xE1310201U				/*GM_RSSP1_atoi()ä¼ å…¥bufsizeä¸º0*/
-#define GM_RSSP1_ATOI_BUFSIZE_ERR					0xE1310202U				/*GM_RSSP1_atoui()ä¼ å…¥bufsizeä½æ•°é”™è¯¯*/
-#define GM_RSSP1_ATOI_BUFSIZE_CHAR_ERR			0xE1310203U				/*å½“å‰å­—ç¬¦ä¸æ˜¯æ•°å­—*/
-#define GM_RSSP1_ATOI_BUFSIZE_RTTOMAX_ERR		0xE1310204U				/*ä¼ å…¥bufå¤§äºŽæœ€å¤§å€¼*/
-#define GM_RSSP1_ATOI_BUFSIZE_2OO3_ERR			0xE1310205U				/*2OO3ä¸æ”¯æŒä½¿ç”¨*/
+#define GM_RSSP1_ATOI_PAR_ERR						0xE1310200U				/*GM_RSSP1_atoi()´«Èë²ÎÊýÓÐÎó*/
+#define GM_RSSP1_ATOI_BUFSIZE_ZERO_ERR			0xE1310201U				/*GM_RSSP1_atoi()´«ÈëbufsizeÎª0*/
+#define GM_RSSP1_ATOI_BUFSIZE_ERR					0xE1310202U				/*GM_RSSP1_atoui()´«ÈëbufsizeÎ»Êý´íÎó*/
+#define GM_RSSP1_ATOI_BUFSIZE_CHAR_ERR			0xE1310203U				/*µ±Ç°×Ö·û²»ÊÇÊý×Ö*/
+#define GM_RSSP1_ATOI_BUFSIZE_RTTOMAX_ERR		0xE1310204U				/*´«Èëbuf´óÓÚ×î´óÖµ*/
+#define GM_RSSP1_ATOI_BUFSIZE_2OO3_ERR			0xE1310205U				/*2OO3²»Ö§³ÖÊ¹ÓÃ*/
 
 
-/*********************COMMENéƒ¨åˆ†,é”™è¯¯å·ä¸º0xE141XXXX******************/
+/*********************COMMEN²¿·Ö,´íÎóºÅÎª0xE141XXXX******************/
 /**GM_RSSP1_Simple_Malloc(),0xE14101XX**/
-#define GM_RSSP1_Simple_Malloc_PAR_ERR						0xE1410100U				/*GM_RSSP1_Simple_Malloc()ä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define GM_RSSP1_Simple_Malloc_SIZE_ERR						0xE1410101U				/*GM_RSSP1_Simple_Malloc()ç©ºé—´å·²æ»¡*/
+#define GM_RSSP1_Simple_Malloc_PAR_ERR						0xE1410100U				/*GM_RSSP1_Simple_Malloc()´«Èë²ÎÊýÓÐÎó*/
+#define GM_RSSP1_Simple_Malloc_SIZE_ERR						0xE1410101U				/*GM_RSSP1_Simple_Malloc()¿Õ¼äÒÑÂú*/
 
 /**GM_RSSP1_Memory_Init(),0xE14102XX**/
-#define GM_RSSP1_Memory_Init_PAR_ERR						0xE1410200U				/*GM_RSSP1_Memory_Init()ä¼ å…¥å‚æ•°æœ‰è¯¯*/
-#define GM_RSSP1_Memory_Init_AGAIN_ERR						0xE1410201U				/*GM_RSSP1_Memory_Init()å·²ç»æ“ä½œè¿‡*/
+#define GM_RSSP1_Memory_Init_PAR_ERR						0xE1410200U				/*GM_RSSP1_Memory_Init()´«Èë²ÎÊýÓÐÎó*/
+#define GM_RSSP1_Memory_Init_AGAIN_ERR						0xE1410201U				/*GM_RSSP1_Memory_Init()ÒÑ¾­²Ù×÷¹ý*/
 
 
 /**GM_RSSP1_memset(),0xE14103XX**/
-#define GM_RSSP1_memset_PAR_ERR								0xE1410300U				/*GM_RSSP1_memset()ä¼ å…¥å‚æ•°æœ‰è¯¯*/
+#define GM_RSSP1_memset_PAR_ERR								0xE1410300U				/*GM_RSSP1_memset()´«Èë²ÎÊýÓÐÎó*/
 
 
 #endif
