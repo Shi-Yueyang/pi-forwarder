@@ -59,6 +59,15 @@ static void rssp1_log_usr(unsigned long errNo,
     forward_log_usr(errNo, arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+/// Update-TC callback: called by the stack to request a VSN update for
+/// connections with non-default cycle periods. Returns GM_RSSP1_TRUE if
+/// a new VSN was assigned (b_UpdateTC logic in SFM). For a simple
+/// single-cycle forwarder, always return false.
+GM_RSSP1_BOOL BUpdate_VSN_CallBack(GM_RSSP1_UINT16 /*tcycle_loc*/)
+{
+    return GM_RSSP1_FALSE;
+}
+
 } // extern "C"
 
 // ============================================================================
