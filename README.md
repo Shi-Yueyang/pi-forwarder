@@ -1,10 +1,15 @@
 # pi_forwarder
 
-Minimal C++ scaffold for a UDP <-> RSSP1 forwarder.
+A C++ gateway that receives plain UDP packets from local applications, forwards them over the RSSP1 safety protocol, and extracts received RSSP1 payloads back to UDP.
 
-The current executable is a placeholder that builds, starts, prints a startup message, and exits successfully.
+The build compiles the vendored RSSP1 C sources into a static library and links them into the forwarder executable.
 
-By default, the build does not compile the vendored RSSP1 C sources yet. That keeps the scaffold buildable while the real RSSP1 integration is still incomplete.
+## Config
+
+Edit `config/forwarder.json` to set RSSP1 parameters and connections. Each connection has:
+
+- `udp_channel` — the local-app UDP socket (bind address + auto-learn peer timeout)
+- `rssp1_channels` — the RSSP1 peer UDP channels (local/remote IP:port pairs)
 
 ## Get Standalone ASIO
 
@@ -40,12 +45,6 @@ Generate the build system into `build/`. CMake picks the newest Visual Studio it
 
 ```powershell
 cmake -S . -B build
-```
-
-Same, but also compile the vendored RSSP1 C sources (off by default):
-
-```powershell
-cmake -S . -B build -DPI_FORWARDER_ENABLE_VENDOR_RSSP1=ON
 ```
 
 ### Build

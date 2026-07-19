@@ -43,40 +43,29 @@ else()
     message(FATAL_ERROR "nlohmann/json.hpp not found at ${PI_FORWARDER_NLOHMANN_DIR}/json.hpp")
 endif()
 
-option(PI_FORWARDER_ENABLE_VENDOR_RSSP1 "Build the vendored RSSP1 C sources" OFF)
+# Vendored RSSP1 C library — always compiled
+file(GLOB_RECURSE RSSP1_SOURCES CONFIGURE_DEPENDS
+    src/GM_RSSPI_V2.0.14/*.c
+)
 
-if(PI_FORWARDER_ENABLE_VENDOR_RSSP1)
-    file(GLOB_RECURSE RSSP1_SOURCES CONFIGURE_DEPENDS
-        src/GM_RSSPI_V2.0.14/*.c
-    )
+add_library(rssp1 STATIC ${RSSP1_SOURCES})
+target_include_directories(rssp1 PUBLIC
+    src/GM_RSSPI_V2.0.14
+    src/GM_RSSPI_V2.0.14/CFM
+    src/GM_RSSPI_V2.0.14/SFM
+    src/GM_RSSPI_V2.0.14/common
+)
 
-    add_library(rssp1 STATIC ${RSSP1_SOURCES})
-    target_include_directories(rssp1 PUBLIC
-        src/GM_RSSPI_V2.0.14
-        src/GM_RSSPI_V2.0.14/CFM
-        src/GM_RSSPI_V2.0.14/SFM
-        src/GM_RSSPI_V2.0.14/common
-    )
+# Single-threaded: disable the vendored C stack's mutex hooks
+target_compile_definitions(rssp1 PRIVATE GM_RSSP1_DISABLE_LOCK OS_64)
 
-    # Single-threaded: disable the vendored C stack's mutex hooks
-    target_compile_definitions(rssp1 PRIVATE GM_RSSP1_DISABLE_LOCK)
+# Suppress C4819 (Unicode-in-CP936) in vendored C source files
+if(MSVC)
+    target_compile_options(rssp1 PRIVATE /wd4819)
+endif()
 
-    # Suppress C4819 (Unicode-in-CP936) in vendored C source files
-    if(MSVC)
-        target_compile_options(rssp1 PRIVATE /wd4819)
-    endif()
-
-    if(WIN32)
-        target_link_libraries(rssp1 PUBLIC ws2_32 mswsock)
-    endif()
-else()
-    add_library(rssp1 INTERFACE)
-    target_include_directories(rssp1 INTERFACE
-        src/GM_RSSPI_V2.0.14
-        src/GM_RSSPI_V2.0.14/CFM
-        src/GM_RSSPI_V2.0.14/SFM
-        src/GM_RSSPI_V2.0.14/common
-    )
+if(WIN32)
+    target_link_libraries(rssp1 PUBLIC ws2_32 mswsock)
 endif()
 
 # Forwarder executable

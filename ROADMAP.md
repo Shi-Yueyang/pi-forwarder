@@ -103,9 +103,9 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
 
 **Goal:** Wrap the critical `GM_RSSP1_*` C API behind `Rssp1Adapter` so no other C++ file touches `extern "C"` RSSP1 headers.
 
-**Prerequisite:** Enable `PI_FORWARDER_ENABLE_VENDOR_RSSP1=ON` in your CMake preset (use `vs2022-debug-vendor-rssp1`).
+**Prerequisite:** The vendored RSSP1 C sources are always compiled — no special flag needed.
 
-- [ ] **4.1 — Implement `Rssp1Adapter`** (`rssp1_adapter.hpp` / `rssp1_adapter.cpp`)
+- [x] **4.1 — Implement `Rssp1Adapter`** (`rssp1_adapter.hpp` / `rssp1_adapter.cpp`)
   - Include all needed RSSP1 C headers inside `extern "C"` blocks in the `.cpp` file only.
   - Public methods matching the cycle operations:
     - `init(const std::string& ini_content)` — passes the generated INI string to `GM_RSSP1_APP_Interface_Init(GetAbas, ini_content.data(), GM_RSSP1_FALSE, NULL)`.
@@ -120,20 +120,58 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
   - Define helper types: `ReceivedPayload { std::vector<std::uint8_t> data; std::uint32_t source_addr; }`.
   - Provide stub implementations of any callbacks the C stack needs (e.g. `GM_RSSP_GET_ABAS_FUN`, `VSN_GET_CALLBACK_FUN`).
 
-- [ ] **4.2 — Handle RSSP1 build issues**
+- [x] **4.2 — Handle RSSP1 build issues**
   - The vendored C code may have minor build errors under MSVC (e.g. `#pragma pack`, non-standard extensions, or missing includes). Fix only build errors; do not refactor.
   - If the C code uses `GM_RSSP1_DISABLE_LOCK`, ensure that macro is set (we are single-threaded).
 
-**Checkpoint:** Compiles with `PI_FORWARDER_ENABLE_VENDOR_RSSP1=ON`. The adapter initializes the RSSP1 stack successfully at startup (log the init result).
+**Checkpoint:** Compiles and links. The adapter initializes the RSSP1 stack successfully at startup (log the init result).
 
 ---
 
-## Phase 5 — Address Map
+## Phase 5 — Per-Connection Config Refactor
+
+**Goal:** Restructure `config/forwarder.json` so each RSSP1 connection owns its local-app UDP channel. This eliminates the single global `pure_udp_layer` and moves it into each connection as `udp_channel`, enabling multi-peer setups where different local applications talk to different RSSP1 peers.
+
+### Config schema changes
+
+| Old (global) | New (per-connection) |
+|---|---|
+| `pure_udp_layer` (top-level) | `udp_channel` (inside each `connections[]` entry) |
+| `rssp1_global` | `rssp1_params` |
+| `rssp1_connections` | `connections` |
+| `udp_channels` (per-connection) | `rssp1_channels` (per-connection) |
+
+### Tasks
+
+- [ ] **5.1 — Update `config.hpp` / `config.cpp`**
+  - Replace `PureUdpLayer` struct with `UdpChannel` struct (same fields: `local_ip`, `local_port`, `peer_timeout_ms`).
+  - Rename `Rssp1Global` → `Rssp1Params`.
+  - Move `UdpChannel` into `Connection` as field `udp_channel`.
+  - Rename `rssp1_connections` → `connections`, `udp_channels` → `rssp1_channels`.
+  - Update JSON key parsing (`from_json`) accordingly.
+
+- [ ] **5.2 — Update `ini_generator.cpp`**
+  - Update section key name from `rssp1_global` / `rssp1_connections` to match renamed struct fields.
+
+- [ ] **5.3 — Update `forwarder.hpp` / `forwarder.cpp`**
+  - Create one local-app `UdpSocket` per connection (was: one global `local_socket_`).
+  - Each connection owns its own auto-learn peer state.
+  - RSSP1 peer sockets are already per-connection; no change needed there.
+
+- [ ] **5.4 — Simplify `address_map.hpp` / `address_map.cpp`**
+  - With per-connection local sockets, the mapping becomes 1:1 — each connection's `udp_channel` maps to its `rssp1_channels` and vice versa.
+  - The `AddressMap` can be reduced to a simple lookup.
+
+**Checkpoint:** Forwarder binds one local UDP socket per connection. Sending to a local peer on connection 0 routes to that connection's RSSP1 peer.
+
+---
+
+## Phase 6 — Address Map
 
 **Goal:** Route between the local UDP peer and the correct RSSP1 connection. Trivial for single-connection setups; required when multiple RSSP1 peers are configured.
 
-- [ ] **5.1 — Implement `AddressMap`** (`address_map.hpp` / `address_map.cpp`)
-  - Single-connection case (common): all local-app traffic maps to the sole `rssp1_connections[0].addr`, and all RSSP1 RX payloads map to the learned local UDP peer. Essentially a no-op.
+- [ ] **6.1 — Implement `AddressMap`** (`address_map.hpp` / `address_map.cpp`)
+  - Single-connection case (common): all local-app traffic maps to the sole `connections[0].addr`, and all RSSP1 RX payloads map to the learned local UDP peer. Essentially a no-op.
   - Multi-connection case (future): each RSSP1 connection's `addr` maps to a specific local UDP port or a per-connection auto-learned peer.
   - `resolve_udp_to_rssp1(const asio::ip::udp::endpoint&)` → returns `std::optional<std::uint16_t>`.
   - `resolve_rssp1_to_udp(std::uint32_t source_addr)` → returns `std::optional<asio::ip::udp::endpoint>`.
@@ -142,11 +180,11 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
 
 ---
 
-## Phase 6 — Data Paths: UDP↔RSSP1
+## Phase 7 — Data Paths: UDP↔RSSP1
 
 **Goal:** Wire `UdpToRsp1` and `Rssp1ToUdp` to connect the queues, the adapter, the address map, and the UDP sockets so data actually flows end-to-end.
 
-- [ ] **6.1 — Implement `Rssp1ToUdp`** (receive path — RSSP1 peer → local app)
+- [ ] **7.1 — Implement `Rssp1ToUdp`** (receive path — RSSP1 peer → local app)
   - Takes references to `rx_frame_queue`, `Rssp1Adapter`, `AddressMap`, and the local-app `UdpSocket`.
   - `process_receive_pass()`:
     1. Dequeue each raw frame from `rx_frame_queue` (with its `src_ip`, `src_port` from the UDP header).
@@ -156,7 +194,7 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
     5. Resolve `src_addr` → local UDP endpoint via `AddressMap`, then `UdpSocket::send_to_peer(data)`.
     (The pass runs even if the queue is empty — the proc functions must still be called to advance the stack.)
 
-- [ ] **6.2 — Implement `UdpToRsp1`** (send path — local app → RSSP1 peer)
+- [ ] **7.2 — Implement `UdpToRsp1`** (send path — local app → RSSP1 peer)
   - Takes references to `tx_payload_queue`, `Rssp1Adapter`, `AddressMap`, and the RSSP1 peer `UdpSocket`.
   - `process_send_pass()`:
     1. Dequeue all pending payloads from `tx_payload_queue`.
@@ -165,7 +203,7 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
     4. Call `adapter.drain_to_send()` → returns `{buf, len, ip, port, index, chn_index}`. The `ip` is in **network byte order**.
     5. Send the raw frame via `UdpSocket::send_to(buf, len, resolved_ip, port)`.
 
-- [ ] **6.3 — Wire everything in `Forwarder`**
+- [ ] **7.3 — Wire everything in `Forwarder`**
   - `do_receive_pass()` delegates to `rssp1_to_udp.process_receive_pass()`.
   - `do_send_pass()` delegates to `udp_to_rssp1.process_send_pass()`.
   - Construct all components in `Forwarder::Forwarder(const Config&)` with the correct dependency order.
@@ -174,57 +212,57 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
 
 ---
 
-## Phase 7 — Robustness & Edge Cases
+## Phase 8 — Robustness & Edge Cases
 
 **Goal:** Handle the real world — connection state changes, errors, idle cycles, and config reload.
 
-- [ ] **7.1 — Connection state monitoring**
+- [ ] **8.1 — Connection state monitoring**
   - Log connection state changes from the RSSP1 adapter (SFM connection state reports).
   - If the RSSP1 connection is down, optionally buffer or drop UDP payloads rather than losing them silently.
 
-- [ ] **7.2 — Error handling**
+- [ ] **8.2 — Error handling**
   - RSSP1 API errors → log and continue (never crash the forwarder).
   - UDP send/receive errors → log and re-arm (transient network issues recover).
   - Queue overflow → log a warning and drop oldest or newest entry (pick one policy).
 
-- [ ] **7.3 — Graceful shutdown**
+- [ ] **8.3 — Graceful shutdown**
   - `Forwarder::~Forwarder()` or a `stop()` method:
     - Cancel the cycle timer.
     - Close both UDP sockets.
     - Call RSSP1 teardown if the stack provides one.
     - `io_context.stop()`.
 
-- [ ] **7.4 — Signal handling (optional but recommended)**
+- [ ] **8.4 — Signal handling (optional but recommended)**
   - Handle `SIGINT` / `SIGTERM` (or `SetConsoleCtrlHandler` on Windows) to trigger graceful shutdown.
 
 **Checkpoint:** The forwarder survives network glitches, logs problems clearly, and shuts down cleanly.
 
 ---
 
-## Phase 8 — Testing
+## Phase 9 — Testing
 
 **Goal:** Add automated tests that validate correctness without needing real RSSP1 peer hardware.
 
-- [ ] **8.1 — Unit tests for `Config`** — parse a known JSON string, verify fields.
-- [ ] **8.2 — Unit tests for `AddressMap`** — test resolve in both directions, missing entries, defaults.
-- [ ] **8.3 — Integration test harness**
+- [ ] **9.1 — Unit tests for `Config`** — parse a known JSON string, verify fields.
+- [ ] **9.2 — Unit tests for `AddressMap`** — test resolve in both directions, missing entries, defaults.
+- [ ] **9.3 — Integration test harness**
   - Two forwarder instances on different loopback ports talking to each other.
   - Send known UDP payloads, verify they arrive intact at the far side.
   - Measure end-to-end latency.
 
-- [ ] **8.4 — RSSP1 adapter mock** (optional, for testing data paths without the C stack)
+- [ ] **9.4 — RSSP1 adapter mock** (optional, for testing data paths without the C stack)
   - An `Rssp1Adapter` interface with a mock implementation that echoes data through the cycle, so the queue/pipeline logic can be tested without the full RSSP1 C library.
 
 **Checkpoint:** `ctest` (or `cmake --build` + test runner) passes all tests.
 
 ---
 
-## Phase 9 — Packaging & Documentation
+## Phase 10 — Packaging & Documentation
 
-- [ ] **9.1 — Polish README.md** with usage examples, config file reference, and build instructions.
-- [ ] **9.2 — Keep `config/forwarder.json` as the documented example** — all fields shown with their defaults in comments.
-- [ ] **9.3 — Consider CI** (GitHub Actions or similar) to build on Windows and run tests.
-- [ ] **9.4 — Add a `--version` flag** and print the RSSP1 library version string (`GM_RSSP1_TABLE_Ver`) at startup.
+- [ ] **10.1 — Polish README.md** with usage examples, config file reference, and build instructions.
+- [ ] **10.2 — Keep `config/forwarder.json` as the documented example** — all fields shown with their defaults in comments.
+- [ ] **10.3 — Consider CI** (GitHub Actions or similar) to build on Windows and run tests.
+- [ ] **10.4 — Add a `--version` flag** and print the RSSP1 library version string (`GM_RSSP1_TABLE_Ver`) at startup.
 
 ---
 
@@ -234,26 +272,22 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
 Phase 1 (Config + Logging)
   └─► Phase 2 (ASIO I/O Skeleton)
        └─► Phase 3 (Cycle Timer + Queues)
-            └─► Phase 4 (RSSP1 Adapter) ◄── requires PI_FORWARDER_ENABLE_VENDOR_RSSP1=ON
-                 └─► Phase 5 (Address Map)
-                      └─► Phase 6 (Data Paths: UDP ↔ RSSP1)
-                           └─► Phase 7 (Robustness)
-                                └─► Phase 8 (Testing)
-                                     └─► Phase 9 (Packaging)
+            └─► Phase 4 (RSSP1 Adapter)
+                 └─► Phase 5 (Per-Connection Config)
+                      └─► Phase 6 (Address Map)
+                           └─► Phase 7 (Data Paths: UDP ↔ RSSP1)
+                                └─► Phase 8 (Robustness)
+                                     └─► Phase 9 (Testing)
+                                          └─► Phase 10 (Packaging)
 ```
 
-Phases 4 and 5 can be worked on in parallel once Phase 3 is done.
+Phases 4, 5, and 6 can be worked on in parallel once Phase 3 is done.
 
 ---
 
 ## Quick Reference: Build Commands
 
 ```bash
-# Placeholder build (no RSSP1 C compilation)
 cmake --preset vs2022-debug
 cmake --build out/build/vs2022-debug
-
-# Full build with RSSP1 C sources (required from Phase 4 onward)
-cmake --preset vs2022-debug-vendor-rssp1
-cmake --build out/build/vs2022-debug-vendor-rssp1
 ```

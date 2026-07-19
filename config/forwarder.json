@@ -1,14 +1,8 @@
 {
   "log_level": "info",
 
-  "pure_udp_layer": {
-    "comment": "talk to local udp apps.",
-    "local_ip": "127.0.0.1",
-    "local_port": 50001,
-    "peer_timeout_ms": 30000
-  },
 
-  "rssp1_global": {
+  "rssp1_params": {
     "comment": "Local RSSP1 parameters. ",
     "main_cycle_ms": 200,
     "sys_chk": { "A": "0xae390b5a", "B": "0xc103589c" },
@@ -21,7 +15,7 @@
     }
   },
 
-  "rssp1_connections": [
+  "connections": [
     {
       "addr": "0x7101",
       "keys": {
@@ -29,7 +23,15 @@
         "sinit":    { "A": "0x9716f7f8", "B": "0xe73747fa" },
         "sid":      { "A": "0x4e1757fc", "B": "0x1083a7fe" }
       },
-      "udp_channels": [
+      
+      "udp_channel": {
+        "comment": "talk to local udp apps.",
+        "local_ip": "127.0.0.1",
+        "local_port": 50001,
+        "peer_timeout_ms": 30000
+      },
+
+      "rssp1_channels": [
         {
           "local_ip": "192.168.201.111",
           "local_port": 50003,

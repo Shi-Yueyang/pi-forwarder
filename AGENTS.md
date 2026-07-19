@@ -47,9 +47,13 @@ pi_forwarder/
 
 **Phase 1 (Config, Logging, INI Generation) — COMPLETE.** The forwarder parses `config/forwarder.json` at startup, configures structured console logging, generates the RSSP1 INI string in memory, and logs it at DEBUG level.
 
-**Phase 2 (ASIO I/O Skeleton) — COMPLETE.** The forwarder owns an `asio::io_context`, binds a local-app UDP socket (with auto-learn peer logic) and RSSP1 peer channel UDP sockets, and runs the event loop. Both sockets receive and log incoming datagrams.
+**Phase 2 (ASIO I/O Skeleton) — COMPLETE.** The forwarder owns an `asio::io_context`, binds local-app UDP sockets (with auto-learn peer logic) and RSSP1 peer channel UDP sockets, and runs the event loop. Both socket types receive and log incoming datagrams.
 
-**Remaining stubs (Phases 3–6):** `rssp1_adapter`, `udp_to_rssp1`, `rssp1_to_udp`, and `address_map` are still bare classes with default constructors. No RSSP1 C API calls, no queues, no cycle timer, and no data-path processing are implemented yet.
+**Phase 3 (Cycle Timer & Queues) — COMPLETE.** An `asio::steady_timer` drives a strict receive-pass-then-send-pass cycle. Two decoupling queues (`rx_frame_queue`, `tx_payload_queue`) sit between the async I/O handlers and the cycle processing.
+
+**Phase 4 (RSSP1 Adapter) — COMPLETE.** The `Rssp1Adapter` wraps all `GM_RSSP1_*` C API calls behind a clean C++ interface. The vendored RSSP1 C sources compile into a static library. The adapter initializes the stack at startup and advances the VSN each cycle.
+
+**Remaining (Phases 5–10):** `address_map`, `udp_to_rssp1`, and `rssp1_to_udp` are still bare stubs. Phase 5 refactors the config to per-connection UDP channels.
 
 ### Processing Model (Design): Strict Cycle
 
@@ -122,18 +126,15 @@ For each raw frame dequeued from the rx frame queue:
 
 - Build system: **CMake** 3.20+.
 - Networking library: **ASIO standalone** (vendored under `third-party/asio-1.36.0/`). Discovered via candidate directory search; `ASIO_STANDALONE` and `_WIN32_WINNT=0x0A00` are defined on the `asio` INTERFACE target.
-- The RSSP1 C sources live under `src/GM_RSSPI_V2.0.14/`. Building them is gated by the CMake option `PI_FORWARDER_ENABLE_VENDOR_RSSP1` (default `OFF`). When `ON`, the C files are compiled into a `rssp1` static library; when `OFF`, `rssp1` is an INTERFACE library providing only include directories.
+- The RSSP1 C sources live under `src/GM_RSSPI_V2.0.14/` and are always compiled into a `rssp1` static library.
 - The `forwarder` executable links `asio` and `rssp1`, and on Windows also links `ws2_32` and `mswsock`.
-- **CMakePresets.json** provides VS2022 configure & build presets (debug, release, and debug-with-vendor-rssp1 variants).
+- **CMakePresets.json** provides VS2022 configure & build presets (debug, release).
 
 Typical commands:
 
 ```bash
-# Configure with default preset (rssp1 as INTERFACE, no C compilation)
+# Configure
 cmake --preset vs2022-debug
-
-# Or configure with vendored RSSP1 sources compiled
-cmake --preset vs2022-debug-vendor-rssp1
 
 # Build
 cmake --build out/build/vs2022-debug
@@ -162,18 +163,18 @@ Documenting how the forwarder behaves internally. When modifying any of these be
 
 `config/forwarder.json` is the single source of truth. At startup the program generates the RSSP1 INI content in memory and passes it to `GM_RSSP1_APP_Interface_Init()` with `is_path=false`. The INI is an internal serialization detail — operators never see it. If a future RSSP1 library version adds new INI keys, the generator must be updated. The generated INI is dumped to the log at DEBUG level for debugging.
 
-- `connection_num` and `Max_ConnectNum` in the generated INI are derived from the length of the `rssp1_connections` array — not a separate field in the JSON.
+- `connection_num` and `Max_ConnectNum` in the generated INI are derived from the length of the `connections` array — not a separate field in the JSON.
 - `queue_sizes` is optional. Defaults: `sfm_u2l_per_connection=80`, `sfm_l2u_per_connection=80`, `cfm_u2l_per_connection=80`, `cfm_l2u_per_connection=80`.
 - `usrdata_all0_size` is optional. Default: `0`.
-- Per connection: `fsfb_comm_cycle_ms` and `local_node_cycle_ms` are optional. Default: `main_cycle_ms` from `rssp1_global`.
+- Per connection: `fsfb_comm_cycle_ms` and `local_node_cycle_ms` are optional. Default: `main_cycle_ms` from `rssp1_params`.
 - Per connection: `num_data_ver` (default `1`), `is_fix_node` (default `true`), `remote_dev_is_A` (default `true`) are optional.
 - Per connection: `timing` is optional. Defaults: `delta_time=5`, `life_time=5`, `delay_time=5`, `tolerate_cycle=6`.
 - Per connection: `enable_crscd_pack` (default `false`), `enable_per_channel_fsfb` (default `false`), `chn_apply_fsfb_id` (default `4001`), `l2u_queue_size` (default `2`) are optional.
-- Per UDP channel: `recv_queue_size` (default `5`), `send_queue_size` (default `5`) are optional.
+- Per RSSP1 channel: `recv_queue_size` (default `5`), `send_queue_size` (default `5`) are optional.
 
-### Pure UDP layer: auto-learn remote peer
+### UDP layer: per-connection auto-learn remote peer
 
-The `pure_udp_layer` section only configures the local bind address and port. The forwarder remembers the first UDP sender as the remote peer for the lifetime of the process.
+Each connection has a `udp_channel` section that configures a local UDP socket for talking to the local application. The forwarder remembers the first UDP sender as the remote peer for the lifetime of the process.
 
 - On the first received UDP datagram, the sender's `ip:port` is recorded and logged prominently.
 - All subsequent outbound UDP payloads go to that remembered peer.
