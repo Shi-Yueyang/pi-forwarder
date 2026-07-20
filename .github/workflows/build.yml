@@ -24,8 +24,17 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Stage artifacts
-        run: cp config/forwarder.json .
         shell: bash
+        run: |
+          cp config/forwarder.json .
+          # Linux: exe is at build/forwarder
+          # Windows: exe is at build/Release/forwarder.exe
+          if [ -f build/forwarder ]; then
+            cp build/forwarder .
+          fi
+          if [ -f build/Release/forwarder.exe ]; then
+            cp build/Release/forwarder.exe .
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
