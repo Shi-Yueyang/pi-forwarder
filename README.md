@@ -2,84 +2,81 @@
 
 A C++ gateway that receives plain UDP packets from local applications, forwards them over the RSSP1 safety protocol, and extracts received RSSP1 payloads back to UDP.
 
-The build compiles the vendored RSSP1 C sources into a static library and links them into the forwarder executable.
+## Problem Statement
 
-## Config
+RSSP1 is a safety communication protocol widely used in railway signalling systems (IEC 62280). It provides authenticated, tamper-proof data transfer between safety-critical peers over untrusted networks.
 
-Edit `config/forwarder.json` to set RSSP1 parameters and connections. Each connection has:
+However, local applications (simulators, test tools, HMI panels) typically speak plain UDP — they don't implement the RSSP1 stack. Writing a custom RSSP1 integration for each tool is impractical and error-prone.
 
-- `udp_channel` — the local-app UDP socket (bind address + auto-learn peer timeout)
-- `rssp1_channels` — the RSSP1 peer UDP channels (local/remote IP:port pairs)
+**pi_forwarder** bridges this gap. It acts as a transparent proxy:
 
-## Get Standalone ASIO
+```
+Local App (plain UDP)  ←→  pi_forwarder  ←→  Remote Peer (RSSP1 over UDP)
+```
 
-Use standalone ASIO, not Boost.Asio.
+Local applications send and receive plain UDP datagrams. The forwarder handles all RSSP1 protocol concerns — authentication, sequence numbers, timestamps, cycle discipline — so local tools stay simple.
 
-Download a recent standalone ASIO release, for example `asio-1.30.2.zip`, from the official ASIO release page.
+## Quick Start
 
-After unpacking, make sure one of these paths exists:
+### Prerequisites
+
+- **CMake** 3.20+
+- **C++17 compiler** (GCC 11+, Clang 14+, or Visual Studio 2022)
+- **ASIO standalone** 1.38.0 (see below)
+
+### 1. Get ASIO
+
+Download [asio-1.38.0](https://github.com/chriskohlhoff/asio/releases/tag/asio-1-36-0) and unpack it so that `asio.hpp` is at:
 
 ```text
-third-party/asio-1.36.0/include/asio.hpp
+third-party/asio-1.38.0/include/asio.hpp
 ```
 
-The first layout matches your current repo. The other layouts also work.
+```bash
+# On Linux / macOS
+mkdir -p third-party
+unzip asio-1.38.0.zip -d third-party/
 
-Quick setup steps on Windows:
+# On Windows (PowerShell)
+New-Item -ItemType Directory -Force third-party
+Expand-Archive asio-1.38.0.zip -DestinationPath third-party
+```
 
-1. Download the standalone ASIO zip archive.
-2. Create `third-party` or `third_party` if needed.
-3. Unzip the archive so that `asio.hpp` ends up under one of the supported paths above.
-4. Reconfigure CMake.
+### 2. Build
 
-
-
-
-## Cheatsheet
-
-All commands are run from the repository root in PowerShell.
-
-### Configure
-
-Generate the build system into `build/`. CMake picks the newest Visual Studio it finds. Re-run this after adding the ASIO headers or changing any CMake option:
-
-```powershell
+```bash
 cmake -S . -B build
-```
-
-### Build
-
-Build the default configuration (Debug for Visual Studio generators):
-
-```powershell
 cmake --build build
 ```
 
-Build Release instead — with a multi-config generator such as Visual Studio, the configuration is chosen at build time, not at configure time:
+On Windows with Visual Studio, add `--config Release` for an optimized build:
 
 ```powershell
 cmake --build build --config Release
 ```
 
-### Run
+### 3. Run
 
-Visual Studio generators place the executable in a per-configuration subfolder:
+Edit `config/forwarder.json` with your RSSP1 parameters and peer addresses, then:
 
-```powershell
-.\build\Debug\forwarder.exe
-.\build\Release\forwarder.exe
+```bash
+./build/forwarder                    # Linux / macOS
+.\build\Debug\forwarder.exe          # Windows (Visual Studio)
 ```
 
-Single-config generators such as Ninja place it directly in the build folder:
+## Configuration
 
-```powershell
-.\build\forwarder.exe
-```
+All RSSP1 parameters and connection settings live in `config/forwarder.json`. A working example ships with the repo.
 
-### Clean
+Each connection defines:
 
-Delete the build folder entirely; the next configure starts from scratch:
+| Field | Purpose |
+|-------|---------|
+| `udp_channel` | Local-app UDP socket — bind address, port, and idle peer timeout |
+| `rssp1_channels` | RSSP1 peer UDP channels — local/remote IP:port pairs for the safety protocol |
 
-```powershell
-Remove-Item -Recurse -Force .\out
-```
+For a complete field reference and default values, see the [Design Decisions](AGENTS.md#design-decisions) in AGENTS.md.
+
+## Project Docs
+
+- **[AGENTS.md](AGENTS.md)** — architecture, processing model, threading model, code style, and design decisions.

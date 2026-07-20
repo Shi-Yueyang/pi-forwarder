@@ -24,7 +24,10 @@ foreach(asio_candidate_dir IN LISTS PI_FORWARDER_ASIO_CANDIDATE_DIRS)
 endforeach()
 
 add_library(asio INTERFACE)
-target_compile_definitions(asio INTERFACE ASIO_STANDALONE _WIN32_WINNT=0x0A00)
+target_compile_definitions(asio INTERFACE ASIO_STANDALONE)
+if(WIN32)
+    target_compile_definitions(asio INTERFACE _WIN32_WINNT=0x0A00)
+endif()
 
 if(PI_FORWARDER_ASIO_INCLUDE_DIR)
     target_include_directories(asio INTERFACE "${PI_FORWARDER_ASIO_INCLUDE_DIR}")
@@ -57,7 +60,10 @@ target_include_directories(rssp1 PUBLIC
 )
 
 # Single-threaded: disable the vendored C stack's mutex hooks
-target_compile_definitions(rssp1 PRIVATE GM_RSSP1_DISABLE_LOCK OS_64)
+target_compile_definitions(rssp1 PUBLIC GM_RSSP1_DISABLE_LOCK OS_64)
+if(NOT WIN32)
+    target_compile_definitions(rssp1 PUBLIC LINUX)
+endif()
 
 # Suppress C4819 (Unicode-in-CP936) in vendored C source files
 if(MSVC)
