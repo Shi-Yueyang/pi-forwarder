@@ -1,7 +1,12 @@
 #include "rssp1_to_udp.hpp"
 #include "log.hpp"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
+
 #include <iomanip>
 #include <sstream>
 #include <utility>
