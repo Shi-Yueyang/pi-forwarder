@@ -31,9 +31,9 @@ public:
     /// In Phase 3 this runs until Ctrl+C (no graceful shutdown yet).
     int run();
 
-    /// Send data to the learned local UDP peer.
+    /// Send data to the learned local UDP peer for a specific connection.
     /// No-op if no peer is currently established; logs a warning.
-    void send_to_local_peer(const std::vector<std::uint8_t>& data);
+    void send_to_local_peer(int conn_idx, const std::vector<std::uint8_t>& data);
 
 private:
     // ---- Setup ----
@@ -48,16 +48,17 @@ private:
     void do_send_pass();
 
     // ---- Receive handlers ----
-    void on_local_app_datagram(std::vector<std::uint8_t> data,
+    void on_local_app_datagram(int conn_idx,
+                               std::vector<std::uint8_t> data,
                                asio::ip::udp::endpoint sender);
     void on_rssp1_datagram(std::size_t socket_index,
                            std::vector<std::uint8_t> data,
                            asio::ip::udp::endpoint sender);
 
     // ---- Auto-learn peer helpers ----
-    void learn_peer(const asio::ip::udp::endpoint& sender);
-    void prune_peer();
-    void check_peer_timeout();
+    void learn_peer(int conn_idx, const asio::ip::udp::endpoint& sender);
+    void prune_peer(int conn_idx);
+    void check_peer_timeout(int conn_idx);
 
     // ---- Utility ----
     std::string endpoint_to_string(const asio::ip::udp::endpoint& ep) const;
@@ -79,8 +80,8 @@ private:
     // RSSP1 protocol stack adapter (initialized with generated INI)
     Rssp1Adapter rssp1_;
 
-    // Local-app socket (one per forwarder)
-    std::unique_ptr<UdpSocket> local_socket_;
+    // Local-app sockets (one per connection)
+    std::vector<std::unique_ptr<UdpSocket>> local_sockets_;
 
     // RSSP1 peer channel sockets (one per connection x channel)
     // Parallel arrays for mapping flat index -> (conn_idx, ch_idx)
@@ -88,9 +89,9 @@ private:
     std::vector<int> peer_socket_conn_idx_;
     std::vector<int> peer_socket_ch_idx_;
 
-    // Auto-learn state for the local-app socket
-    std::optional<asio::ip::udp::endpoint> local_peer_;
-    std::chrono::steady_clock::time_point last_peer_rx_time_;
+    // Auto-learn state for each local-app socket
+    std::vector<std::optional<asio::ip::udp::endpoint>> local_peers_;
+    std::vector<std::chrono::steady_clock::time_point> last_peer_rx_times_;
 };
 
 } // namespace forwarder

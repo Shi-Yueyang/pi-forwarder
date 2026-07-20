@@ -16,7 +16,7 @@ namespace forwarder {
 Forwarder::Forwarder(const Config& config)
     : config_(config)
 {
-    LOG_INFO("pi_forwarder initializing (Phase 4)");
+    LOG_INFO("pi_forwarder initializing (Phase 5)");
 
     create_sockets();
     start_receive_loops();
@@ -44,7 +44,7 @@ Forwarder::Forwarder(const Config& config)
     }
 
     // Start the processing-cycle timer
-    cycle_period_ms_ = config_.rssp1_global.main_cycle_ms;
+    cycle_period_ms_ = config_.local_rssp1_params.main_cycle_ms;
     start_cycle_timer();
     LOG_INFO("Cycle timer started (period=" +
              std::to_string(cycle_period_ms_) + "ms)");
@@ -52,6 +52,8 @@ Forwarder::Forwarder(const Config& config)
     log_config_summary();
 
     LOG_INFO("Forwarder initialized -- " +
+             std::to_string(local_sockets_.size()) +
+             " local-app socket(s), " +
              std::to_string(peer_sockets_.size()) +
              " RSSP1 peer socket(s) ready");
 }
@@ -59,8 +61,8 @@ Forwarder::Forwarder(const Config& config)
 Forwarder::~Forwarder()
 {
     // Members destroy in reverse declaration order:
-    // local_peer_, peer_sockets_, local_socket_, tx/rx queues,
-    // cycle_timer_, io_, config_
+    // last_peer_rx_times_, local_peers_, peer_sockets_, local_sockets_,
+    // tx/rx queues, cycle_timer_, io_, config_
     // Each UdpSocket destructor closes its socket; the timer's
     // pending async_wait gets operation_aborted on destruction.
 }
@@ -145,25 +147,32 @@ void Forwarder::do_send_pass()
 
 void Forwarder::create_sockets()
 {
-    // ---- Local-app socket ----
-    try {
-        auto local_ep = asio::ip::udp::endpoint(
-            asio::ip::make_address(config_.pure_udp_layer.local_ip),
-            config_.pure_udp_layer.local_port);
-        local_socket_ = std::make_unique<UdpSocket>(io_, local_ep);
-    } catch (const std::exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to create local-app socket (") +
-            config_.pure_udp_layer.local_ip + ':' +
-            std::to_string(config_.pure_udp_layer.local_port) +
-            "): " + e.what());
+    // ---- Local-app sockets (one per connection) ----
+    for (std::size_t ci = 0; ci < config_.connections.size(); ++ci) {
+        const auto& conn = config_.connections[ci];
+        try {
+            auto local_ep = asio::ip::udp::endpoint(
+                asio::ip::make_address(conn.udp_channel.local_ip),
+                conn.udp_channel.local_port);
+            local_sockets_.push_back(std::make_unique<UdpSocket>(io_, local_ep));
+        } catch (const std::exception& e) {
+            throw std::runtime_error(
+                std::string("Failed to create local-app socket for connection ") +
+                std::to_string(ci) + " (" + conn.udp_channel.local_ip + ':' +
+                std::to_string(conn.udp_channel.local_port) +
+                "): " + e.what());
+        }
     }
 
+    // Initialize per-connection peer state arrays
+    local_peers_.resize(config_.connections.size());
+    last_peer_rx_times_.resize(config_.connections.size());
+
     // ---- RSSP1 peer channel sockets ----
-    for (std::size_t ci = 0; ci < config_.rssp1_connections.size(); ++ci) {
-        const auto& conn = config_.rssp1_connections[ci];
-        for (std::size_t chi = 0; chi < conn.udp_channels.size(); ++chi) {
-            const auto& ch = conn.udp_channels[chi];
+    for (std::size_t ci = 0; ci < config_.connections.size(); ++ci) {
+        const auto& conn = config_.connections[ci];
+        for (std::size_t chi = 0; chi < conn.rssp1_channels.size(); ++chi) {
+            const auto& ch = conn.rssp1_channels[chi];
             try {
                 auto ep = asio::ip::udp::endpoint(
                     asio::ip::make_address(ch.local_ip),
@@ -182,10 +191,16 @@ void Forwarder::create_sockets()
         }
     }
 
+    if (local_sockets_.empty()) {
+        throw std::runtime_error(
+            "No local UDP sockets configured -- at least one connection "
+            "with a udp_channel is required in connections[]");
+    }
+
     if (peer_sockets_.empty()) {
         throw std::runtime_error(
-            "No RSSP1 peer sockets configured -- at least one UDP channel "
-            "is required in rssp1_connections[].udp_channels");
+            "No RSSP1 peer sockets configured -- at least one rssp1_channel "
+            "is required in connections[].rssp1_channels");
     }
 }
 
@@ -195,11 +210,16 @@ void Forwarder::create_sockets()
 
 void Forwarder::start_receive_loops()
 {
-    // Local-app socket
-    local_socket_->start_receive(
-        [this](std::vector<std::uint8_t> data, asio::ip::udp::endpoint sender) {
-            on_local_app_datagram(std::move(data), std::move(sender));
-        });
+    // Local-app sockets -- capture connection index for routing
+    for (std::size_t i = 0; i < local_sockets_.size(); ++i) {
+        local_sockets_[i]->start_receive(
+            [this, i](std::vector<std::uint8_t> data,
+                       asio::ip::udp::endpoint sender) {
+                on_local_app_datagram(static_cast<int>(i),
+                                      std::move(data),
+                                      std::move(sender));
+            });
+    }
 
     // RSSP1 peer sockets -- capture flat index for logging
     for (std::size_t i = 0; i < peer_sockets_.size(); ++i) {
@@ -220,25 +240,25 @@ void Forwarder::log_config_summary()
     LOG_INFO("Configuration summary:");
     LOG_INFO("  log_level: " +
              std::string(log_level_to_string(config_.log_level)));
-    LOG_INFO("  pure_udp_layer: " +
-             config_.pure_udp_layer.local_ip + ':' +
-             std::to_string(config_.pure_udp_layer.local_port) +
-             " (peer_timeout=" +
-             std::to_string(config_.pure_udp_layer.peer_timeout_ms) + "ms)");
-    LOG_INFO("  rssp1_global.main_cycle_ms: " +
-             std::to_string(config_.rssp1_global.main_cycle_ms));
-    LOG_INFO("  rssp1_connections: " +
-             std::to_string(config_.rssp1_connections.size()));
+    LOG_INFO("  local_rssp1_params.main_cycle_ms: " +
+             std::to_string(config_.local_rssp1_params.main_cycle_ms));
+    LOG_INFO("  connections: " +
+             std::to_string(config_.connections.size()));
 
-    for (std::size_t i = 0; i < config_.rssp1_connections.size(); ++i) {
-        const auto& conn = config_.rssp1_connections[i];
+    for (std::size_t i = 0; i < config_.connections.size(); ++i) {
+        const auto& conn = config_.connections[i];
         std::ostringstream addr_hex;
         addr_hex << "0x" << std::hex << std::uppercase << conn.addr;
         LOG_INFO("    [" + std::to_string(i) + "] dest_addr=" +
                  addr_hex.str() +
-                 ", udp_channels=" + std::to_string(conn.udp_channels.size()));
-        for (std::size_t j = 0; j < conn.udp_channels.size(); ++j) {
-            const auto& ch = conn.udp_channels[j];
+                 ", udp_channel=" + conn.udp_channel.local_ip + ':' +
+                 std::to_string(conn.udp_channel.local_port) +
+                 " (peer_timeout=" +
+                 std::to_string(conn.udp_channel.peer_timeout_ms) + "ms)" +
+                 ", rssp1_channels=" +
+                 std::to_string(conn.rssp1_channels.size()));
+        for (std::size_t j = 0; j < conn.rssp1_channels.size(); ++j) {
+            const auto& ch = conn.rssp1_channels[j];
             LOG_INFO("        ch[" + std::to_string(j) + "] " +
                      ch.local_ip + ':' + std::to_string(ch.local_port) +
                      " -> " + ch.remote_ip + ':' +
@@ -251,18 +271,20 @@ void Forwarder::log_config_summary()
 // Local-app datagram handler (auto-learn peer + push to tx queue)
 // ============================================================================
 
-void Forwarder::on_local_app_datagram(std::vector<std::uint8_t> data,
+void Forwarder::on_local_app_datagram(int conn_idx,
+                                       std::vector<std::uint8_t> data,
                                        asio::ip::udp::endpoint sender)
 {
     // 1. Check if the current learned peer has timed out
-    check_peer_timeout();
+    check_peer_timeout(conn_idx);
 
     // 2. If no peer is established (fresh start or just pruned), learn sender
-    if (!local_peer_.has_value()) {
-        learn_peer(sender);
+    if (!local_peers_[conn_idx].has_value()) {
+        learn_peer(conn_idx, sender);
 
         tx_payload_queue_.push_back({std::move(data), sender});
-        LOG_DEBUG("Local-app RX: pushed " +
+        LOG_DEBUG("Local-app RX [conn " + std::to_string(conn_idx) +
+                  "]: pushed " +
                   std::to_string(tx_payload_queue_.back().data.size()) +
                   " bytes from " + endpoint_to_string(sender) +
                   " to tx_payload_queue (depth=" +
@@ -271,11 +293,12 @@ void Forwarder::on_local_app_datagram(std::vector<std::uint8_t> data,
     }
 
     // 3. Peer is locked in -- only accept from the same address
-    if (sender == *local_peer_) {
-        last_peer_rx_time_ = std::chrono::steady_clock::now();
+    if (sender == *local_peers_[conn_idx]) {
+        last_peer_rx_times_[conn_idx] = std::chrono::steady_clock::now();
 
         tx_payload_queue_.push_back({std::move(data), sender});
-        LOG_DEBUG("Local-app RX: pushed " +
+        LOG_DEBUG("Local-app RX [conn " + std::to_string(conn_idx) +
+                  "]: pushed " +
                   std::to_string(tx_payload_queue_.back().data.size()) +
                   " bytes from " + endpoint_to_string(sender) +
                   " to tx_payload_queue (depth=" +
@@ -285,8 +308,9 @@ void Forwarder::on_local_app_datagram(std::vector<std::uint8_t> data,
         LOG_DEBUG("Dropped " + std::to_string(data.size()) +
                   " bytes from unknown sender " +
                   endpoint_to_string(sender) +
+                  " on conn " + std::to_string(conn_idx) +
                   " (current peer: " +
-                  endpoint_to_string(*local_peer_) + ')');
+                  endpoint_to_string(*local_peers_[conn_idx]) + ')');
     }
 }
 
@@ -314,33 +338,35 @@ void Forwarder::on_rssp1_datagram(std::size_t socket_index,
 // Auto-learn peer helpers
 // ============================================================================
 
-void Forwarder::learn_peer(const asio::ip::udp::endpoint& sender)
+void Forwarder::learn_peer(int conn_idx, const asio::ip::udp::endpoint& sender)
 {
-    local_peer_ = sender;
-    last_peer_rx_time_ = std::chrono::steady_clock::now();
-    LOG_INFO("=== Learned local UDP peer: " +
+    local_peers_[conn_idx] = sender;
+    last_peer_rx_times_[conn_idx] = std::chrono::steady_clock::now();
+    LOG_INFO("=== Learned local UDP peer for conn " +
+             std::to_string(conn_idx) + ": " +
              endpoint_to_string(sender) + " ===");
 }
 
-void Forwarder::prune_peer()
+void Forwarder::prune_peer(int conn_idx)
 {
-    if (!local_peer_.has_value()) return;
+    if (!local_peers_[conn_idx].has_value()) return;
 
-    LOG_INFO("Local peer " + endpoint_to_string(*local_peer_) +
+    LOG_INFO("Local peer " + endpoint_to_string(*local_peers_[conn_idx]) +
+             " on conn " + std::to_string(conn_idx) +
              " timed out -- pruning");
-    local_peer_.reset();
+    local_peers_[conn_idx].reset();
 }
 
-void Forwarder::check_peer_timeout()
+void Forwarder::check_peer_timeout(int conn_idx)
 {
-    if (!local_peer_.has_value()) return;
+    if (!local_peers_[conn_idx].has_value()) return;
 
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now - last_peer_rx_time_);
+        now - last_peer_rx_times_[conn_idx]);
 
-    if (elapsed.count() >= config_.pure_udp_layer.peer_timeout_ms) {
-        prune_peer();
+    if (elapsed.count() >= config_.connections[conn_idx].udp_channel.peer_timeout_ms) {
+        prune_peer(conn_idx);
     }
 }
 
@@ -348,14 +374,23 @@ void Forwarder::check_peer_timeout()
 // Send to local peer
 // ============================================================================
 
-void Forwarder::send_to_local_peer(const std::vector<std::uint8_t>& data)
+void Forwarder::send_to_local_peer(int conn_idx,
+                                    const std::vector<std::uint8_t>& data)
 {
-    if (!local_peer_.has_value()) {
-        LOG_WARN("send_to_local_peer: no peer established -- dropping " +
+    if (conn_idx < 0 || static_cast<std::size_t>(conn_idx) >= local_sockets_.size()) {
+        LOG_WARN("send_to_local_peer: invalid connection index " +
+                 std::to_string(conn_idx) + " -- dropping " +
                  std::to_string(data.size()) + " bytes");
         return;
     }
-    local_socket_->send_to(data, *local_peer_);
+
+    if (!local_peers_[conn_idx].has_value()) {
+        LOG_WARN("send_to_local_peer [conn " + std::to_string(conn_idx) +
+                 "]: no peer established -- dropping " +
+                 std::to_string(data.size()) + " bytes");
+        return;
+    }
+    local_sockets_[conn_idx]->send_to(data, *local_peers_[conn_idx]);
 }
 
 // ============================================================================

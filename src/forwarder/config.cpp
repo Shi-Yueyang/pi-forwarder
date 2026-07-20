@@ -93,40 +93,31 @@ Config parse_config_string(const std::string& json_str)
         config.log_level = log_level_from_string(j["log_level"].get<std::string>());
     }
 
-    // ---- 2. pure_udp_layer (optional section) ----
-    if (j.contains("pure_udp_layer") && j["pure_udp_layer"].is_object()) {
-        const auto& udp = j["pure_udp_layer"];
-        auto& pu = config.pure_udp_layer;
-        pu.local_ip       = udp.value("local_ip",       pu.local_ip);
-        pu.local_port     = udp.value("local_port",     pu.local_port);
-        pu.peer_timeout_ms = udp.value("peer_timeout_ms", pu.peer_timeout_ms);
-    }
-
-    // ---- 3. rssp1_global (required section) ----
-    if (!j.contains("rssp1_global")) {
-        throw std::runtime_error("Missing required top-level field: 'rssp1_global'");
+    // ---- 2. local_rssp1_params (required section) ----
+    if (!j.contains("local_rssp1_params")) {
+        throw std::runtime_error("Missing required top-level field: 'local_rssp1_params'");
     }
     {
-        const auto& g = j["rssp1_global"];
-        auto& rg = config.rssp1_global;
+        const auto& g = j["local_rssp1_params"];
+        auto& rg = config.local_rssp1_params;
 
-        rg.addr          = parse_hex32(g.at("addr").get<std::string>(), "rssp1_global.addr");
+        rg.addr          = parse_hex32(g.at("addr").get<std::string>(), "local_rssp1_params.addr");
         rg.main_cycle_ms = g.value("main_cycle_ms", 200);
 
         // sys_chk (required)
         if (g.contains("sys_chk")) {
-            rg.sys_chk = parse_syschk(g["sys_chk"], "rssp1_global.sys_chk");
+            rg.sys_chk = parse_syschk(g["sys_chk"], "local_rssp1_params.sys_chk");
         } else {
-            throw std::runtime_error("Missing required field: rssp1_global.sys_chk");
+            throw std::runtime_error("Missing required field: local_rssp1_params.sys_chk");
         }
 
         // keys (required)
         if (!g.contains("keys")) {
-            throw std::runtime_error("Missing required field: rssp1_global.keys");
+            throw std::runtime_error("Missing required field: local_rssp1_params.keys");
         }
         {
             const auto& gk = g["keys"];
-            const std::string ctx = "rssp1_global.keys";
+            const std::string ctx = "local_rssp1_params.keys";
             rg.keys.data_ver = parse_keyval(gk.at("data_ver"), ctx + ".data_ver");
             rg.keys.sinit    = parse_keyval(gk.at("sinit"),    ctx + ".sinit");
             rg.keys.sid      = parse_keyval(gk.at("sid"),      ctx + ".sid");
@@ -144,18 +135,18 @@ Config parse_config_string(const std::string& json_str)
         rg.usrdata_all0_size = g.value("usrdata_all0_size", 0);
     }
 
-    // ---- 4. rssp1_connections (required, may be empty array) ----
-    if (!j.contains("rssp1_connections")) {
-        throw std::runtime_error("Missing required top-level field: 'rssp1_connections'");
+    // ---- 3. connections (required, may be empty array) ----
+    if (!j.contains("connections")) {
+        throw std::runtime_error("Missing required top-level field: 'connections'");
     }
-    if (!j["rssp1_connections"].is_array()) {
-        throw std::runtime_error("'rssp1_connections' must be an array");
+    if (!j["connections"].is_array()) {
+        throw std::runtime_error("'connections' must be an array");
     }
 
-    for (size_t i = 0; i < j["rssp1_connections"].size(); ++i) {
-        const auto& c = j["rssp1_connections"][i];
-        Rssp1Connection conn;
-        const std::string conn_label = "rssp1_connections[" + std::to_string(i) + "]";
+    for (size_t i = 0; i < j["connections"].size(); ++i) {
+        const auto& c = j["connections"][i];
+        Connection conn;
+        const std::string conn_label = "connections[" + std::to_string(i) + "]";
 
         // addr (required)
         conn.addr = static_cast<std::uint16_t>(
@@ -193,24 +184,36 @@ Config parse_config_string(const std::string& json_str)
             conn.timing.tolerate_cycle = t.value("tolerate_cycle", 6);
         }
 
-        // udp_channels (required)
-        if (!c.contains("udp_channels") || !c["udp_channels"].is_array()) {
+        // udp_channel (required)
+        if (!c.contains("udp_channel") || !c["udp_channel"].is_object()) {
             throw std::runtime_error(
-                "Missing or invalid 'udp_channels' in " + conn_label);
+                "Missing or invalid 'udp_channel' in " + conn_label);
         }
-        for (size_t ch = 0; ch < c["udp_channels"].size(); ++ch) {
-            const auto& uc = c["udp_channels"][ch];
-            UdpChannel channel;
+        {
+            const auto& uc = c["udp_channel"];
+            conn.udp_channel.local_ip        = uc.value("local_ip",        std::string("127.0.0.1"));
+            conn.udp_channel.local_port      = uc.value("local_port",      0);
+            conn.udp_channel.peer_timeout_ms = uc.value("peer_timeout_ms", 30000);
+        }
+
+        // rssp1_channels (required)
+        if (!c.contains("rssp1_channels") || !c["rssp1_channels"].is_array()) {
+            throw std::runtime_error(
+                "Missing or invalid 'rssp1_channels' in " + conn_label);
+        }
+        for (size_t ch = 0; ch < c["rssp1_channels"].size(); ++ch) {
+            const auto& uc = c["rssp1_channels"][ch];
+            Rssp1Channel channel;
             channel.local_ip      = uc.value("local_ip",   std::string("127.0.0.1"));
             channel.local_port    = uc.value("local_port",  0);
             channel.remote_ip     = uc.value("remote_ip",  std::string("127.0.0.1"));
             channel.remote_port   = uc.value("remote_port", 0);
             channel.recv_queue_size = uc.value("recv_queue_size", 5);
             channel.send_queue_size = uc.value("send_queue_size", 5);
-            conn.udp_channels.push_back(std::move(channel));
+            conn.rssp1_channels.push_back(std::move(channel));
         }
 
-        config.rssp1_connections.push_back(std::move(conn));
+        config.connections.push_back(std::move(conn));
     }
 
     return config;

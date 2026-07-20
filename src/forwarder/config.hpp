@@ -45,8 +45,15 @@ struct Timing {
     int tolerate_cycle = 6;
 };
 
-// ---- A single UDP channel within an RSSP1 connection ----
+// ---- Local-app UDP channel for a single RSSP1 connection ----
 struct UdpChannel {
+    std::string  local_ip   = "127.0.0.1";
+    std::uint16_t local_port = 0;
+    int peer_timeout_ms = 30000;
+};
+
+// ---- A single RSSP1 peer channel within a connection ----
+struct Rssp1Channel {
     std::string  local_ip;
     std::uint16_t local_port  = 0;
     std::string  remote_ip;
@@ -56,12 +63,17 @@ struct UdpChannel {
 };
 
 // ---- A single RSSP1 peer connection ----
-struct Rssp1Connection {
+struct Connection {
     std::uint16_t addr = 0;
     Keys                    keys;
-    std::vector<UdpChannel> udp_channels;
 
-    // Optional fields. Sentinel -1 for cycle fields means "use rssp1_global.main_cycle_ms".
+    // Local-app socket config (one per connection)
+    UdpChannel udp_channel;
+
+    // RSSP1 peer channels
+    std::vector<Rssp1Channel> rssp1_channels;
+
+    // Optional fields. Sentinel -1 for cycle fields means "use local_rssp1_params.main_cycle_ms".
     int  fsfb_comm_cycle_ms   = -1;
     int  local_node_cycle_ms  = -1;
     int  num_data_ver         = 1;
@@ -75,7 +87,7 @@ struct Rssp1Connection {
 };
 
 // ---- Global RSSP1 stack parameters ----
-struct Rssp1Global {
+struct Rssp1Params {
     std::uint16_t addr = 0;
     int     main_cycle_ms = 200;
     SysChk  sys_chk;
@@ -84,19 +96,11 @@ struct Rssp1Global {
     int     usrdata_all0_size = 0;
 };
 
-// ---- Pure UDP layer parameters ----
-struct PureUdpLayer {
-    std::string  local_ip   = "127.0.0.1";
-    std::uint16_t local_port = 50001;
-    int peer_timeout_ms = 30000;
-};
-
 // ---- Top-level configuration ----
 struct Config {
     LogLevel log_level = LogLevel::Info; // resolved from string after parsing
-    PureUdpLayer                    pure_udp_layer;
-    Rssp1Global                     rssp1_global;
-    std::vector<Rssp1Connection>    rssp1_connections;
+    Rssp1Params                     local_rssp1_params;
+    std::vector<Connection>         connections;
 };
 
 // ---- Parsing functions ----

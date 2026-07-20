@@ -45,8 +45,8 @@ void write_str(std::ostringstream& ini, const char* key, const std::string& val)
 std::string generate_ini_string(const Config& config)
 {
     std::ostringstream ini;
-    const auto& g = config.rssp1_global;
-    int conn_count = static_cast<int>(config.rssp1_connections.size());
+    const auto& g = config.local_rssp1_params;
+    int conn_count = static_cast<int>(config.connections.size());
 
     // ============================================================
     //  [RSSP1_GLOBAL]
@@ -78,7 +78,7 @@ std::string generate_ini_string(const Config& config)
     //  [CON_i] -- one per connection
     // ============================================================
     for (int i = 0; i < conn_count; ++i) {
-        const auto& conn = config.rssp1_connections[i];
+        const auto& conn = config.connections[i];
 
         ini << "[CON_" << i << "]\n";
 
@@ -120,12 +120,12 @@ std::string generate_ini_string(const Config& config)
         write_dec(ini, "Chn_apply_FSFB_ID",     conn.chn_apply_fsfb_id);
         write_dec(ini, "con_L2U_Q_size",        conn.l2u_queue_size);
 
-        int ch_count = static_cast<int>(conn.udp_channels.size());
+        int ch_count = static_cast<int>(conn.rssp1_channels.size());
         write_dec(ini, "UDP_channel_num", ch_count);
 
         // Per-channel entries (local_ip_N, local_port_N, remote_ip_N, remote_port_N)
         for (int ch = 0; ch < ch_count; ++ch) {
-            const auto& uc = conn.udp_channels[ch];
+            const auto& uc = conn.rssp1_channels[ch];
             write_str(ini, ("local_ip_"  + std::to_string(ch)).c_str(), uc.local_ip);
             write_dec(ini, ("local_port_" + std::to_string(ch)).c_str(), uc.local_port);
             write_str(ini, ("remote_ip_" + std::to_string(ch)).c_str(), uc.remote_ip);
@@ -133,8 +133,8 @@ std::string generate_ini_string(const Config& config)
         }
 
         // Per-connection UDP queue sizes (from first channel, or defaults)
-        int recv_mq = conn.udp_channels.empty() ? 5 : conn.udp_channels[0].recv_queue_size;
-        int send_mq = conn.udp_channels.empty() ? 5 : conn.udp_channels[0].send_queue_size;
+        int recv_mq = conn.rssp1_channels.empty() ? 5 : conn.rssp1_channels[0].recv_queue_size;
+        int send_mq = conn.rssp1_channels.empty() ? 5 : conn.rssp1_channels[0].send_queue_size;
         write_dec(ini, "UDP_recv_MQ_size", recv_mq);
         write_dec(ini, "UDP_send_MQ_size", send_mq);
     }
