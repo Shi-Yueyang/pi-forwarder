@@ -22,25 +22,23 @@ Local applications send and receive plain UDP datagrams. The forwarder handles a
 
 - **CMake** 3.20+
 - **C++17 compiler** (GCC 11+, Clang 14+, or Visual Studio 2022)
-- **ASIO standalone** 1.38.0 (see below)
 
-### 1. Get ASIO
+### 1. Third-Party Dependencies
 
-Download [asio-1.38.0](https://github.com/chriskohlhoff/asio/releases/tag/asio-1-36-0) and unpack it so that `asio.hpp` is at:
+The project vendors its dependencies under `third-party/`. Make sure these are present:
+
+| Library | Version | Link |
+|---------|---------|------|
+| ASIO standalone | 1.38.0 | https://github.com/chriskohlhoff/asio/releases/tag/asio-1-38-0 |
+| nlohmann/json | 3.12.0 | https://github.com/nlohmann/json/releases/tag/v3.12.0 |
+
+ASIO should be unpacked so that `asio.hpp` is at:
 
 ```text
 third-party/asio-1.38.0/include/asio.hpp
 ```
 
-```bash
-# On Linux / macOS
-mkdir -p third-party
-unzip asio-1.38.0.zip -d third-party/
-
-# On Windows (PowerShell)
-New-Item -ItemType Directory -Force third-party
-Expand-Archive asio-1.38.0.zip -DestinationPath third-party
-```
+nlohmann/json is a single header — place `json.hpp` directly under `third-party/nlohmann/`.
 
 ### 2. Build
 
