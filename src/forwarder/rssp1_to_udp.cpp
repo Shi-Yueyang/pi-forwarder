@@ -1,6 +1,8 @@
 #include "rssp1_to_udp.hpp"
 #include "log.hpp"
 
+#include <iomanip>
+#include <sstream>
 #include <utility>
 
 namespace forwarder {
@@ -57,15 +59,19 @@ void Rssp1ToUdp::process()
         for (auto& payload : payloads) {
             int conn_idx = resolve_conn_idx(payload.source_addr);
             if (conn_idx >= 0) {
-                LOG_DEBUG("RSSP1->UDP: " +
-                          std::to_string(payload.data.size()) +
-                          " bytes from source_addr=0x" +
-                          std::to_string(payload.source_addr) +
-                          " -> conn " + std::to_string(conn_idx));
+                std::ostringstream oss;
+                oss << "RSSP1->UDP: " << payload.data.size()
+                    << " bytes from source_addr=0x"
+                    << std::hex << std::uppercase << payload.source_addr
+                    << " -> conn " << std::dec << conn_idx;
+                LOG_DEBUG(oss.str());
                 send_to_local_(conn_idx, std::move(payload.data));
             } else {
-                LOG_WARN("Received payload from unknown source_addr=0x" +
-                         std::to_string(payload.source_addr) + " -- dropped");
+                std::ostringstream oss;
+                oss << "Received payload from unknown source_addr=0x"
+                    << std::hex << std::uppercase << payload.source_addr
+                    << " -- dropped";
+                LOG_WARN(oss.str());
             }
         }
         payloads.clear();

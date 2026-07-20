@@ -1,6 +1,8 @@
 #include "udp_to_rssp1.hpp"
 #include "log.hpp"
 
+#include <iomanip>
+#include <sstream>
 #include <utility>
 
 namespace forwarder {
@@ -30,16 +32,17 @@ void UdpToRsp1::process()
             bool submitted = adapter_.send_app_data(payload.data, dest_addr);
 
             if (submitted) {
-                LOG_DEBUG("UDP->RSSP1 [conn " +
-                          std::to_string(payload.conn_idx) + "]: " +
-                          std::to_string(payload.data.size()) +
-                          " bytes -> dest_addr=0x" +
-                          std::to_string(dest_addr));
+                std::ostringstream oss;
+                oss << "UDP->RSSP1 [conn " << payload.conn_idx << "]: "
+                    << payload.data.size() << " bytes -> dest_addr=0x"
+                    << std::hex << std::uppercase << dest_addr;
+                LOG_DEBUG(oss.str());
             } else {
-                LOG_WARN("UDP->RSSP1 [conn " +
-                         std::to_string(payload.conn_idx) + "]: " +
-                         "send_app_data failed (dest_addr=0x" +
-                         std::to_string(dest_addr) + ") -- dropped");
+                std::ostringstream oss;
+                oss << "UDP->RSSP1 [conn " << payload.conn_idx << "]: "
+                    << "send_app_data failed (dest_addr=0x"
+                    << std::hex << std::uppercase << dest_addr << ") -- dropped";
+                LOG_WARN(oss.str());
             }
         } else {
             LOG_WARN("UDP->RSSP1: invalid conn_idx " +

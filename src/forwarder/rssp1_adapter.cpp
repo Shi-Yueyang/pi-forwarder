@@ -129,14 +129,18 @@ bool Rssp1Adapter::rcv_com_interface(const std::vector<std::uint8_t>& frame,
 {
     if (!initialized_) return false;
 
-    LOG_DEBUG("rcv_com_interface: src_ip=0x" +
-              std::to_string(src_ip) + " (" +
-              std::to_string((src_ip >> 24) & 0xFF) + "." +
-              std::to_string((src_ip >> 16) & 0xFF) + "." +
-              std::to_string((src_ip >> 8) & 0xFF) + "." +
-              std::to_string(src_ip & 0xFF) + ")" +
-              ", src_port=" + std::to_string(src_port) +
-              ", frame_len=" + std::to_string(frame.size()));
+    {
+        std::ostringstream oss;
+        oss << "rcv_com_interface: src_ip=0x" << std::hex << std::uppercase << src_ip
+            << " (" << std::dec
+            << ((src_ip >> 24) & 0xFF) << "."
+            << ((src_ip >> 16) & 0xFF) << "."
+            << ((src_ip >> 8) & 0xFF) << "."
+            << (src_ip & 0xFF) << ")"
+            << ", src_port=" << src_port
+            << ", frame_len=" << frame.size();
+        LOG_DEBUG(oss.str());
+    }
 
     bool result = GM_RSSP1_RCV_com_Interface(
                const_cast<GM_RSSP1_UINT8*>(frame.data()),
