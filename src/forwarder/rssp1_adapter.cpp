@@ -14,6 +14,7 @@ extern "C" {
 }
 
 #include <cstring>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -28,8 +29,9 @@ namespace {
 // Bridge: C log-usr callback -> C++ LOG_WARN
 void forward_log_usr(unsigned long errNo, int, int, int, int, int, int)
 {
-    LOG_WARN("RSSP1 internal: err=0x" +
-             std::to_string(errNo));  // hex would be better, but to_string works
+    std::ostringstream oss;
+    oss << "RSSP1 internal: err=0x" << std::hex << std::uppercase << errNo;
+    LOG_WARN(oss.str());
 }
 
 } // anonymous namespace
@@ -127,7 +129,16 @@ bool Rssp1Adapter::rcv_com_interface(const std::vector<std::uint8_t>& frame,
 {
     if (!initialized_) return false;
 
-    return GM_RSSP1_RCV_com_Interface(
+    LOG_DEBUG("rcv_com_interface: src_ip=0x" +
+              std::to_string(src_ip) + " (" +
+              std::to_string((src_ip >> 24) & 0xFF) + "." +
+              std::to_string((src_ip >> 16) & 0xFF) + "." +
+              std::to_string((src_ip >> 8) & 0xFF) + "." +
+              std::to_string(src_ip & 0xFF) + ")" +
+              ", src_port=" + std::to_string(src_port) +
+              ", frame_len=" + std::to_string(frame.size()));
+
+    bool result = GM_RSSP1_RCV_com_Interface(
                const_cast<GM_RSSP1_UINT8*>(frame.data()),
                static_cast<GM_RSSP1_INT16>(frame.size()),
                src_ip,
@@ -136,6 +147,10 @@ bool Rssp1Adapter::rcv_com_interface(const std::vector<std::uint8_t>& frame,
                0,     // chn_index (ignored when mode=1)
                mode
            ) == GM_RSSP1_TRUE;
+
+    LOG_DEBUG("rcv_com_interface result: " + std::string(result ? "matched" : "NOT matched"));
+
+    return result;
 }
 
 // ---- Cycle processing ----

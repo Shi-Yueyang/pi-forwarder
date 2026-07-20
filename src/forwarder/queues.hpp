@@ -16,7 +16,7 @@ namespace forwarder {
 struct RxFrame {
     std::vector<std::uint8_t> raw_bytes;
     asio::ip::udp::endpoint sender;   // which RSSP1 peer sent this
-                                       // (Phase 6: src_ip/src_port extraction)
+    int conn_idx = -1;                // which connection this frame belongs to
 };
 
 /// A payload from a local application, waiting to be forwarded to RSSP1.
@@ -24,7 +24,7 @@ struct RxFrame {
 struct TxPayload {
     std::vector<std::uint8_t> data;
     asio::ip::udp::endpoint sender;   // which local app sent this
-                                       // (Phase 5: address resolution)
+    int conn_idx = -1;                // which connection this payload is for
 };
 
 using RxFrameQueue  = std::deque<RxFrame>;

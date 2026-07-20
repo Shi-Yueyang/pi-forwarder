@@ -6,6 +6,8 @@
 #include "config.hpp"
 #include "queues.hpp"
 #include "rssp1_adapter.hpp"
+#include "rssp1_to_udp.hpp"
+#include "udp_to_rssp1.hpp"
 #include "udp_socket.hpp"
 
 #include <asio.hpp>
@@ -44,8 +46,6 @@ private:
 
     // ---- Cycle processing ----
     void on_cycle_tick(std::error_code ec);
-    void do_receive_pass();
-    void do_send_pass();
 
     // ---- Receive handlers ----
     void on_local_app_datagram(int conn_idx,
@@ -80,6 +80,10 @@ private:
     // RSSP1 protocol stack adapter (initialized with generated INI)
     Rssp1Adapter rssp1_;
 
+    // Data path processing (constructed after rssp1_, references it)
+    std::unique_ptr<Rssp1ToUdp> rssp1_to_udp_;
+    std::unique_ptr<UdpToRsp1> udp_to_rssp1_;
+
     // Local-app sockets (one per connection)
     std::vector<std::unique_ptr<UdpSocket>> local_sockets_;
 
@@ -88,6 +92,9 @@ private:
     std::vector<std::unique_ptr<UdpSocket>> peer_sockets_;
     std::vector<int> peer_socket_conn_idx_;
     std::vector<int> peer_socket_ch_idx_;
+
+    // Reverse lookup: peer_socket_index_rev_[conn_idx][chn_idx] -> flat index
+    std::vector<std::vector<std::size_t>> peer_socket_index_rev_;
 
     // Auto-learn state for each local-app socket
     std::vector<std::optional<asio::ip::udp::endpoint>> local_peers_;

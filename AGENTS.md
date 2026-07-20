@@ -32,8 +32,7 @@ pi_forwarder/
     │   ├── udp_socket.{hpp,cpp}  # ✅ RAII ASIO UDP socket (async recv loop, fire-and-forget send)
     │   ├── rssp1_adapter.{hpp,cpp}  # ⬜ RSSP1 C API wrapper stub (Phase 4)
     │   ├── udp_to_rssp1.{hpp,cpp}   # ⬜ UDP → RSSP1 send path stub (Phase 6)
-    │   ├── rssp1_to_udp.{hpp,cpp}   # ⬜ RSSP1 → UDP receive path stub (Phase 6)
-    │   └── address_map.{hpp,cpp}    # ⬜ Endpoint mapping stub (Phase 5)
+    │   └── rssp1_to_udp.{hpp,cpp}   # ⬜ RSSP1 → UDP receive path stub (Phase 6)
     └── GM_RSSPI_V2.0.14/        # Vendored C RSSP1 library (do not refactor)
         ├── GM_RSSP1_APP_Interface.{h,c}  # Application-layer interface
         ├── GM_RSSP1_CFM_Interface.{h,c}  # Communication layer (raw frames)
@@ -53,7 +52,7 @@ pi_forwarder/
 
 **Phase 4 (RSSP1 Adapter) — COMPLETE.** The `Rssp1Adapter` wraps all `GM_RSSP1_*` C API calls behind a clean C++ interface. The vendored RSSP1 C sources compile into a static library. The adapter initializes the stack at startup and advances the VSN each cycle.
 
-**Remaining (Phases 5–10):** `address_map`, `udp_to_rssp1`, and `rssp1_to_udp` are still bare stubs. Phase 5 refactors the config to per-connection UDP channels.
+**Remaining (Phases 6–10):** `udp_to_rssp1` and `rssp1_to_udp` are still bare stubs.
 
 ### Processing Model (Design): Strict Cycle
 
@@ -84,14 +83,14 @@ For each raw frame dequeued from the rx frame queue:
    - Returns `0`: a non-application message (connection state, warning).
    - Returns `< 0`: no more messages.
    - Loop until the return is ≤ 0 to drain all queued payloads.
-4. `address_map` resolves `src_addr` (the source SaCEPID) to a local UDP endpoint; `udp_socket` sends the payload data (without the 6-byte header) to the local application.
+4. The peer socket index from the rx queue tells us which connection the payload belongs to. Deliver the payload data (without the 6-byte header) to the local peer via `local_sockets_[conn_idx]->send_to_peer()`.
 
 > **Note:** The receive pass must run even if the rx frame queue is empty — call `RCV_com_Interface` with `recv_len=0` (or skip and just call the proc functions) so the stack's internal timers and state machines advance.
 
 #### 2. Send pass (once per cycle)
 
 1. Dequeue pending UDP payloads from the tx payload queue.
-2. For each payload: `address_map` resolves the UDP destination to an RSSP1 `dest_addr` (SaCEPID), then:
+2. For each payload: look up `config_.connections[conn_idx].addr` (the RSSP1 dest_addr / SaCEPID), then:
    `GM_RSSP1_APP_Interface_Send_App_Dat(data, len, dest_addr)`
    The raw application data is passed directly — the stack adds its own 6-byte header internally.
 3. Run the layer send processing:

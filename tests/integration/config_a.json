@@ -1,12 +1,9 @@
 {
-  "log_level": "info",
-
+  "log_level": "debug",
 
   "local_rssp1_params": {
-    "comment": "Local RSSP1 parameters. ",
     "main_cycle_ms": 200,
     "sys_chk": { "A": "0xae390b5a", "B": "0xc103589c" },
-    
     "addr": "0x7003",
     "keys": {
       "data_ver": { "A": "0xDD70005B", "B": "0xBFFFFFA4" },
@@ -23,20 +20,19 @@
         "sinit":    { "A": "0x9716f7f8", "B": "0xe73747fa" },
         "sid":      { "A": "0x4e1757fc", "B": "0x1083a7fe" }
       },
-      
+
       "udp_channel": {
-        "comment": "talk to local udp apps.",
         "local_ip": "127.0.0.1",
-        "local_port": 50001,
-        "peer_timeout_ms": 30000
+        "local_port": 51001,
+        "peer_timeout_ms": 60000
       },
 
       "rssp1_channels": [
         {
           "local_ip": "127.0.0.1",
-          "local_port": 50003,
+          "local_port": 51002,
           "remote_ip": "127.0.0.1",
-          "remote_port": 50003
+          "remote_port": 51003
         }
       ]
     }

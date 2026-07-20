@@ -43,6 +43,51 @@ Forwarder::Forwarder(const Config& config)
         rssp1_.set_log_level(rssp1_level);
     }
 
+    // ---- Construct data-path processors ----
+    rssp1_to_udp_ = std::make_unique<Rssp1ToUdp>(
+        rx_frame_queue_, rssp1_, config_,
+        [this](int conn_idx, std::vector<std::uint8_t> data) {
+            send_to_local_peer(conn_idx, data);
+        });
+
+    udp_to_rssp1_ = std::make_unique<UdpToRsp1>(
+        tx_payload_queue_, rssp1_, config_,
+        [this](int conn_idx, int chn_idx,
+               std::vector<std::uint8_t> data,
+               std::uint32_t ip, std::uint16_t port) {
+            // Skip frames with no valid destination (e.g. during RSSP1 startup
+            // before the connection is fully established)
+            if (ip == 0 || port == 0) {
+                LOG_DEBUG("Send frame: skipping (ip=0x" +
+                          std::to_string(ip) + ", port=" + std::to_string(port) +
+                          ") — connection not yet established");
+                return;
+            }
+
+            // Resolve (conn_idx, chn_idx) to flat peer socket index
+            if (conn_idx >= 0 &&
+                static_cast<std::size_t>(conn_idx) < peer_socket_index_rev_.size() &&
+                chn_idx >= 0 &&
+                static_cast<std::size_t>(chn_idx) < peer_socket_index_rev_[conn_idx].size()) {
+
+                std::size_t sock_idx = peer_socket_index_rev_[conn_idx][chn_idx];
+                if (sock_idx < peer_sockets_.size() && peer_sockets_[sock_idx]) {
+                    // ip is in network byte order (from sockaddr_in.sin_addr.s_addr).
+                    // address_v4(ulong) takes host byte order — use ntohl.
+                    asio::ip::udp::endpoint dest(
+                        asio::ip::address_v4(ntohl(ip)), port);
+                    LOG_DEBUG("Send frame to " + dest.address().to_string() + ":" +
+                              std::to_string(dest.port()) + " (" +
+                              std::to_string(data.size()) + " bytes)");
+                    peer_sockets_[sock_idx]->send_to(data, dest);
+                    return;
+                }
+            }
+            LOG_WARN("Send frame: invalid (conn=" + std::to_string(conn_idx) +
+                     ", ch=" + std::to_string(chn_idx) + ") -- dropped " +
+                     std::to_string(data.size()) + " bytes");
+        });
+
     // Start the processing-cycle timer
     cycle_period_ms_ = config_.local_rssp1_params.main_cycle_ms;
     start_cycle_timer();
@@ -100,45 +145,11 @@ void Forwarder::on_cycle_tick(std::error_code ec)
     }
 
     rssp1_.vsn_update();    // advance RSSP1 timestamp each cycle
-    do_receive_pass();
-    do_send_pass();
+    if (rssp1_to_udp_)  rssp1_to_udp_->process();
+    if (udp_to_rssp1_)  udp_to_rssp1_->process();
 
     // Re-arm for the next cycle
     start_cycle_timer();
-}
-
-// ============================================================================
-// Pass stubs (Phase 3: drain + log; Phase 6: RSSP1 processing)
-// ============================================================================
-
-void Forwarder::do_receive_pass()
-{
-    LOG_DEBUG("--- Receive pass begin (rx_queue depth=" +
-              std::to_string(rx_frame_queue_.size()) + ") ---");
-
-    while (!rx_frame_queue_.empty()) {
-        const auto& frame = rx_frame_queue_.front();
-        LOG_DEBUG("  RX frame: " + std::to_string(frame.raw_bytes.size()) +
-                  " bytes from " + endpoint_to_string(frame.sender));
-        rx_frame_queue_.pop_front();
-    }
-
-    LOG_DEBUG("--- Receive pass end (rx_queue depth=0) ---");
-}
-
-void Forwarder::do_send_pass()
-{
-    LOG_DEBUG("--- Send pass begin (tx_queue depth=" +
-              std::to_string(tx_payload_queue_.size()) + ") ---");
-
-    while (!tx_payload_queue_.empty()) {
-        const auto& payload = tx_payload_queue_.front();
-        LOG_DEBUG("  TX payload: " + std::to_string(payload.data.size()) +
-                  " bytes from " + endpoint_to_string(payload.sender));
-        tx_payload_queue_.pop_front();
-    }
-
-    LOG_DEBUG("--- Send pass end (tx_queue depth=0) ---");
 }
 
 // ============================================================================
@@ -168,6 +179,14 @@ void Forwarder::create_sockets()
     local_peers_.resize(config_.connections.size());
     last_peer_rx_times_.resize(config_.connections.size());
 
+    // Initialize reverse peer socket mapping table
+    peer_socket_index_rev_.resize(config_.connections.size());
+    for (std::size_t ci = 0; ci < config_.connections.size(); ++ci) {
+        peer_socket_index_rev_[ci].resize(
+            config_.connections[ci].rssp1_channels.size(),
+            static_cast<std::size_t>(-1));
+    }
+
     // ---- RSSP1 peer channel sockets ----
     for (std::size_t ci = 0; ci < config_.connections.size(); ++ci) {
         const auto& conn = config_.connections[ci];
@@ -178,9 +197,11 @@ void Forwarder::create_sockets()
                     asio::ip::make_address(ch.local_ip),
                     ch.local_port);
                 auto sock = std::make_unique<UdpSocket>(io_, ep);
+                auto flat_idx = peer_sockets_.size();
                 peer_sockets_.push_back(std::move(sock));
                 peer_socket_conn_idx_.push_back(static_cast<int>(ci));
                 peer_socket_ch_idx_.push_back(static_cast<int>(chi));
+                peer_socket_index_rev_[ci][chi] = flat_idx;
             } catch (const std::exception& e) {
                 throw std::runtime_error(
                     std::string("Failed to create RSSP1 peer socket [conn ") +
@@ -282,7 +303,7 @@ void Forwarder::on_local_app_datagram(int conn_idx,
     if (!local_peers_[conn_idx].has_value()) {
         learn_peer(conn_idx, sender);
 
-        tx_payload_queue_.push_back({std::move(data), sender});
+        tx_payload_queue_.push_back({std::move(data), sender, conn_idx});
         LOG_DEBUG("Local-app RX [conn " + std::to_string(conn_idx) +
                   "]: pushed " +
                   std::to_string(tx_payload_queue_.back().data.size()) +
@@ -296,7 +317,7 @@ void Forwarder::on_local_app_datagram(int conn_idx,
     if (sender == *local_peers_[conn_idx]) {
         last_peer_rx_times_[conn_idx] = std::chrono::steady_clock::now();
 
-        tx_payload_queue_.push_back({std::move(data), sender});
+        tx_payload_queue_.push_back({std::move(data), sender, conn_idx});
         LOG_DEBUG("Local-app RX [conn " + std::to_string(conn_idx) +
                   "]: pushed " +
                   std::to_string(tx_payload_queue_.back().data.size()) +
@@ -322,7 +343,8 @@ void Forwarder::on_rssp1_datagram(std::size_t socket_index,
                                    std::vector<std::uint8_t> data,
                                    asio::ip::udp::endpoint sender)
 {
-    rx_frame_queue_.push_back({std::move(data), sender});
+    int conn_idx = resolve_socket_to_conn_idx(socket_index);
+    rx_frame_queue_.push_back({std::move(data), sender, conn_idx});
     LOG_DEBUG("RSSP1 peer [conn " +
               std::to_string(resolve_socket_to_conn_idx(socket_index)) +
               ", ch " +

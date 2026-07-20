@@ -1,0 +1,101 @@
+[2026-07-20 13:57:17.034] [INFO] (main.cpp:31) Using config file: /home/syy/dev/pi-forwarder/tests/integration/config_b.json
+[2026-07-20 13:57:17.034] [INFO] (forwarder.cpp:19) pi_forwarder initializing (Phase 5)
+[2026-07-20 13:57:17.034] [INFO] (udp_socket.cpp:36) UdpSocket bound to 127.0.0.1:51004
+[2026-07-20 13:57:17.034] [INFO] (udp_socket.cpp:36) UdpSocket bound to 127.0.0.1:51003
+[2026-07-20 13:57:17.034] [DEBUG] (forwarder.cpp:26) Generated RSSP1 INI:
+[RSSP1_GLOBAL]
+main_cycle=200
+connection_num=1
+source_addr=0x7101
+Max_ConnectNum=1
+local_dataVer_A=0x09EAA7F4
+local_dataVer_B=0x404257F6
+local_sinit_A=0x9716F7F8
+local_sinit_B=0xE73747FA
+local_sid_A=0x4E1757FC
+local_sid_B=0x1083A7FE
+local_sys_chk_A=0xAE390B5A
+local_sys_chk_B=0xC103589C
+SFM_U2L_Q_Size_per_connection=80
+SFM_L2U_Q_Size_per_connection=80
+CFM_U2L_Q_Size_per_connection=80
+CFM_L2U_Q_Size_per_connection=80
+UsrData_All0_Size=0
+[CON_0]
+FSFB_comm_cycle=200
+local_node_cycle=200
+dest_addr=0x7003
+enable_CRSCD_pack=0
+deltaTime=5
+lifeTime=5
+DelayTime=5
+torlerate_cycle=6
+num_data_ver=1
+Is_Fix_Node=1
+remote_dataVer_A=0xDD70005B
+remote_dataVer_B=0xBFFFFFA4
+remote_sinit_A=0xC6E4005B
+remote_sinit_B=0xB7D7FFA4
+remote_sid_A=0x86880057
+remote_sid_B=0xE407FFA8
+remote_dev_is_A=1
+com_type=0
+enable_UDP_chn_FSFB=0
+Chn_apply_FSFB_ID=4001
+con_L2U_Q_size=2
+UDP_channel_num=1
+local_ip_0=127.0.0.1
+local_port_0=51003
+remote_ip_0=127.0.0.1
+remote_port_0=51002
+UDP_recv_MQ_size=5
+UDP_send_MQ_size=5
+
+[2026-07-20 13:57:17.034] [INFO] (rssp1_adapter.cpp:86) Initializing RSSP1 stack (vBcode_RSSP-I_V2.0.14_Build_20260302)
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.037] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.038] [WARN] (rssp1_adapter.cpp:34) RSSP1 internal: err=0xE1110301
+[2026-07-20 13:57:17.038] [INFO] (rssp1_adapter.cpp:119) RSSP1 stack initialized successfully
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:94) Cycle timer started (period=200ms)
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:261) Configuration summary:
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:262)   log_level: DEBUG
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:264)   local_rssp1_params.main_cycle_ms: 200
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:266)   connections: 1
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:273)     [0] dest_addr=0x7003, udp_channel=127.0.0.1:51004 (peer_timeout=60000ms), rssp1_channels=1
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:283)         ch[0] 127.0.0.1:51003 -> 127.0.0.1:51002
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:99) Forwarder initialized -- 1 local-app socket(s), 1 RSSP1 peer socket(s) ready
+[2026-07-20 13:57:17.038] [INFO] (forwarder.cpp:121) Entering I/O event loop (Ctrl+C to stop)
+[2026-07-20 13:57:18.035] [INFO] (forwarder.cpp:367) === Learned local UDP peer for conn 0: 127.0.0.1:36042 ===
+[2026-07-20 13:57:18.035] [DEBUG] (forwarder.cpp:307) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:18.037] [DEBUG] (forwarder.cpp:348) RSSP1 peer [conn 0, ch 0] RX: pushed 27 bytes from 127.0.0.1:51002 to rx_frame_queue (depth=1)
+[2026-07-20 13:57:18.038] [DEBUG] (rssp1_adapter.cpp:132) rcv_com_interface: src_ip=0x2130706433 (127.0.0.1), src_port=51002, frame_len=27
+[2026-07-20 13:57:18.038] [DEBUG] (rssp1_adapter.cpp:151) rcv_com_interface result: NOT matched
+[2026-07-20 13:57:18.038] [WARN] (rssp1_to_udp.cpp:36) RSSP1 frame from 127.0.0.1:51002 did not match any configured connection -- dropped
+[2026-07-20 13:57:18.038] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+Sending to 7003 RSD: TC = 0 CRCM1 = a2dccb00 CRCM2 = bc7606ce
+SFM ID:0x7003 --------> send RSD.27 bytes.
+[2026-07-20 13:57:18.038] [DEBUG] (udp_to_rssp1.cpp:63) RSSP1 outbound frame [conn 0, ch 0]: 27 bytes
+[2026-07-20 13:57:18.038] [DEBUG] (forwarder.cpp:79) Send frame to 127.0.0.1:51002 (27 bytes)
+[2026-07-20 13:57:19.036] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:19.039] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+[2026-07-20 13:57:20.037] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:20.040] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+[2026-07-20 13:57:21.038] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:21.041] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+[2026-07-20 13:57:22.039] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:22.042] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+[2026-07-20 13:57:23.040] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:23.042] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+[2026-07-20 13:57:24.042] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:24.043] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+[2026-07-20 13:57:25.043] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:25.045] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675
+[2026-07-20 13:57:26.044] [DEBUG] (forwarder.cpp:321) Local-app RX [conn 0]: pushed 5 bytes from 127.0.0.1:36042 to tx_payload_queue (depth=1)
+[2026-07-20 13:57:26.045] [DEBUG] (udp_to_rssp1.cpp:33) UDP->RSSP1 [conn 0]: 5 bytes -> dest_addr=0x28675

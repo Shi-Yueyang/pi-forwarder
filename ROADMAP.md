@@ -143,72 +143,96 @@ This roadmap covers the implementation from the current all-stub scaffold to a f
 
 ### Tasks
 
-- [ ] **5.1 — Update `config.hpp` / `config.cpp`**
+- [x] **5.1 — Update `config.hpp` / `config.cpp`**
   - Replace `PureUdpLayer` struct with `UdpChannel` struct (same fields: `local_ip`, `local_port`, `peer_timeout_ms`).
   - Rename `Rssp1Global` → `Rssp1Params`.
   - Move `UdpChannel` into `Connection` as field `udp_channel`.
   - Rename `rssp1_connections` → `connections`, `udp_channels` → `rssp1_channels`.
   - Update JSON key parsing (`from_json`) accordingly.
 
-- [ ] **5.2 — Update `ini_generator.cpp`**
+- [x] **5.2 — Update `ini_generator.cpp`**
   - Update section key name from `rssp1_global` / `rssp1_connections` to match renamed struct fields.
 
-- [ ] **5.3 — Update `forwarder.hpp` / `forwarder.cpp`**
+- [x] **5.3 — Update `forwarder.hpp` / `forwarder.cpp`**
   - Create one local-app `UdpSocket` per connection (was: one global `local_socket_`).
   - Each connection owns its own auto-learn peer state.
   - RSSP1 peer sockets are already per-connection; no change needed there.
 
-- [ ] **5.4 — Simplify `address_map.hpp` / `address_map.cpp`**
+- [x] **5.4 — Simplify `address_map.hpp` / `address_map.cpp`**
   - With per-connection local sockets, the mapping becomes 1:1 — each connection's `udp_channel` maps to its `rssp1_channels` and vice versa.
-  - The `AddressMap` can be reduced to a simple lookup.
+  - The `AddressMap` is unnecessary — removed. The connection index itself is the mapping.
 
 **Checkpoint:** Forwarder binds one local UDP socket per connection. Sending to a local peer on connection 0 routes to that connection's RSSP1 peer.
 
 ---
 
-## Phase 6 — Address Map
+## Phase 6 — Address Map ❌ REMOVED
 
-**Goal:** Route between the local UDP peer and the correct RSSP1 connection. Trivial for single-connection setups; required when multiple RSSP1 peers are configured.
-
-- [ ] **6.1 — Implement `AddressMap`** (`address_map.hpp` / `address_map.cpp`)
-  - Single-connection case (common): all local-app traffic maps to the sole `connections[0].addr`, and all RSSP1 RX payloads map to the learned local UDP peer. Essentially a no-op.
-  - Multi-connection case (future): each RSSP1 connection's `addr` maps to a specific local UDP port or a per-connection auto-learned peer.
-  - `resolve_udp_to_rssp1(const asio::ip::udp::endpoint&)` → returns `std::optional<std::uint16_t>`.
-  - `resolve_rssp1_to_udp(std::uint32_t source_addr)` → returns `std::optional<asio::ip::udp::endpoint>`.
-
-**Checkpoint:** Unit-testable in isolation — supply endpoints, verify correct mappings.
+**Removed.** The per-connection config refactor (Phase 5) made a separate address map unnecessary. Each local socket and peer socket already knows which connection it belongs to via `conn_idx` — the mapping is implicit 1:1.
 
 ---
 
 ## Phase 7 — Data Paths: UDP↔RSSP1
 
-**Goal:** Wire `UdpToRsp1` and `Rssp1ToUdp` to connect the queues, the adapter, the address map, and the UDP sockets so data actually flows end-to-end.
+**Goal:** Wire `UdpToRsp1` and `Rssp1ToUdp` to connect the queues, the adapter, and the UDP sockets so data actually flows end-to-end.
 
-- [ ] **7.1 — Implement `Rssp1ToUdp`** (receive path — RSSP1 peer → local app)
-  - Takes references to `rx_frame_queue`, `Rssp1Adapter`, `AddressMap`, and the local-app `UdpSocket`.
-  - `process_receive_pass()`:
+- [x] **7.1 — Implement `Rssp1ToUdp`** (receive path — RSSP1 peer → local app)
+  - Takes references to `rx_frame_queue`, `Rssp1Adapter`, the Config, and a send-to-local callback.
+  - `process()`:
     1. Dequeue each raw frame from `rx_frame_queue` (with its `src_ip`, `src_port` from the UDP header).
     2. Feed to `adapter.rcv_com_interface(buf, len, src_ip, src_port, 0, 0, 1)`.
     3. If it returns `true`: call `adapter.cfm_proc_recv()` then `adapter.sfm_proc_recv()`.
-    4. Loop `adapter.drain_received()` → each payload has a **6-byte header** — skip it, pass `buf+6` / `len-6` as the actual app data.
-    5. Resolve `src_addr` → local UDP endpoint via `AddressMap`, then `UdpSocket::send_to_peer(data)`.
-    (The pass runs even if the queue is empty — the proc functions must still be called to advance the stack.)
+    4. Loop `adapter.drain_received()` → each payload has a **6-byte header** stripped by the adapter. Resolve `source_addr` → `conn_idx` via `config_.connections[].addr` scan.
+    5. Send the payload via `send_to_local(conn_idx, data)` callback.
+    (The pass runs even if the queue is empty — `receive_pass()` must still be called to advance the stack.)
 
-- [ ] **7.2 — Implement `UdpToRsp1`** (send path — local app → RSSP1 peer)
-  - Takes references to `tx_payload_queue`, `Rssp1Adapter`, `AddressMap`, and the RSSP1 peer `UdpSocket`.
-  - `process_send_pass()`:
+- [x] **7.2 — Implement `UdpToRsp1`** (send path — local app → RSSP1 peer)
+  - Takes references to `tx_payload_queue`, `Rssp1Adapter`, the Config, and a send-frame callback.
+  - `process()`:
     1. Dequeue all pending payloads from `tx_payload_queue`.
-    2. For each: `AddressMap::resolve_udp_to_rssp1()` → `dest_addr`, then `adapter.send_app_data(data, len, dest_addr)`.
-    3. Call `adapter.sfm_proc_send()` then `adapter.cfm_proc_send()` (runs every cycle — the stack emits periodic SSE/SSR/RSD frames).
-    4. Call `adapter.drain_to_send()` → returns `{buf, len, ip, port, index, chn_index}`. The `ip` is in **network byte order**.
-    5. Send the raw frame via `UdpSocket::send_to(buf, len, resolved_ip, port)`.
+    2. For each: `dest_addr = config_.connections[conn_idx].addr`, then `adapter.send_app_data(data, len, dest_addr)`.
+    3. Call `adapter.send_pass()` (runs every cycle — the stack emits periodic SSE/SSR/RSD frames).
+    4. Loop `adapter.drain_to_send()` → returns `{buf, len, ip, port, index, chn_index}`. The `ip` is in **network byte order** — requires `ntohl()` before passing to `address_v4()`.
+    5. Send via `send_frame(conn_idx, chn_idx, data, ip, port)` callback. Forwarder resolves `(conn_idx, chn_idx)` → flat peer socket index via `peer_socket_index_rev_`.
 
-- [ ] **7.3 — Wire everything in `Forwarder`**
-  - `do_receive_pass()` delegates to `rssp1_to_udp.process_receive_pass()`.
-  - `do_send_pass()` delegates to `udp_to_rssp1.process_send_pass()`.
-  - Construct all components in `Forwarder::Forwarder(const Config&)` with the correct dependency order.
+- [x] **7.3 — Wire everything in `Forwarder`**
+  - `do_receive_pass()` delegates to `rssp1_to_udp_->process()`.
+  - `do_send_pass()` delegates to `udp_to_rssp1_->process()`.
+  - Construct path objects with lambdas in `Forwarder::Forwarder(const Config&)`, after RSSP1 init and before cycle timer start.
+  - `conn_idx` propagated into `RxFrame` / `TxPayload` at push sites.
+  - Reverse peer socket mapping `peer_socket_index_rev_[conn_idx][chn_idx]` built in `create_sockets()`.
 
-**Checkpoint:** Full end-to-end data flow — send UDP to the local-app port, it surfaces on the RSSP1 peer socket, and vice versa.
+**Checkpoint:** Full end-to-end data flow — send UDP to the local-app port, it surfaces on the RSSP1 peer socket, and vice versa. ✅ Verified with loopback test.
+
+---
+
+## Phase 7.5 — Integration Test Demo
+
+**Goal:** A runnable demo that starts two forwarder instances and two local UDP apps on loopback, proving data flows correctly through the full RSSP1 layer end-to-end.
+
+### Architecture
+
+```
+App A (plain UDP) ←→ Forwarder A ←→ RSSP1 over UDP ←→ Forwarder B ←→ App B (plain UDP)
+```
+
+Each side has its own `forwarder.json`. The two forwarders talk RSSP1 to each other over loopback on distinct port pairs. Two test scripts (`app_a` and `app_b`) send and receive plain UDP to their local forwarder.
+
+### Tasks
+
+- [ ] **7.5.1 — Create `tests/integration/` directory**
+  - `config_a.json` — Forwarder A config (local-app port 51001, RSSP1 peer port 51002 → 51003)
+  - `config_b.json` — Forwarder B config (local-app port 51004, RSSP1 peer port 51003 → 51002)
+  - `app_a.py` — sends a known payload to 127.0.0.1:51001, listens for a reply
+  - `app_b.py` — listens on 127.0.0.1:51004, echoes received data back
+  - `run_demo.sh` — launches both forwarders + both apps, verifies the round-trip, cleans up
+
+- [ ] **7.5.2 — Verify round-trip**
+  - App A sends `"Hello from A"` → Forwarder A → RSSP1 → Forwarder B → App B
+  - App B echoes back → Forwarder B → RSSP1 → Forwarder A → App A
+  - App A confirms it received its own message back intact
+
+**Checkpoint:** `tests/integration/run_demo.sh` passes — two forwarders + two apps complete a round-trip on loopback.
 
 ---
 
@@ -274,14 +298,14 @@ Phase 1 (Config + Logging)
        └─► Phase 3 (Cycle Timer + Queues)
             └─► Phase 4 (RSSP1 Adapter)
                  └─► Phase 5 (Per-Connection Config)
-                      └─► Phase 6 (Address Map)
-                           └─► Phase 7 (Data Paths: UDP ↔ RSSP1)
+                      └─► Phase 7 (Data Paths: UDP ↔ RSSP1)
+                           └─► Phase 7.5 (Integration Test Demo)
                                 └─► Phase 8 (Robustness)
                                      └─► Phase 9 (Testing)
                                           └─► Phase 10 (Packaging)
 ```
 
-Phases 4, 5, and 6 can be worked on in parallel once Phase 3 is done.
+Phase 6 (Address Map) removed — subsumed by Phase 5's per-connection design.
 
 ---
 
