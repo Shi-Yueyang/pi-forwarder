@@ -14,6 +14,7 @@ extern "C" {
 }
 
 #include <cstring>
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -183,6 +184,11 @@ int Rssp1Adapter::drain_received(std::vector<ReceivedPayload>& out)
 
     GM_RSSP1_INT8 rc = GM_RSSP1_APP_Interface_Rcv_App_Dat(
         buf, &src_addr, &data_len, &remaining);
+
+    LOG_DEBUG("drain_received: rc=" + std::to_string(rc) +
+              " src_addr=0x" + ([&]{ std::ostringstream o; o << std::hex << std::uppercase << src_addr; return o.str(); }()) +
+              " data_len=" + std::to_string(data_len) +
+              " remaining=" + std::to_string(remaining));
 
     if (rc <= 0) return rc;  // -1 = no more, 0 = non-app message
 
