@@ -23,11 +23,14 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
+      - name: Stage artifacts
+        run: cp config/forwarder.json .
+        shell: bash
+
       - uses: actions/upload-artifact@v4
         with:
           name: pi-forwarder-${{ matrix.os }}
           path: |
-            build/forwarder
-            build/forwarder.exe
-            build/Release/forwarder.exe
-            config/forwarder.json
+            forwarder
+            forwarder.exe
+            forwarder.json

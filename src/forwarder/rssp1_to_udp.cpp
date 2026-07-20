@@ -1,6 +1,7 @@
 #include "rssp1_to_udp.hpp"
 #include "log.hpp"
 
+#include <arpa/inet.h>
 #include <iomanip>
 #include <sstream>
 #include <utility>
@@ -26,9 +27,10 @@ void Rssp1ToUdp::process()
 
         // Extract src_ip (network byte order) and src_port (host byte order)
         // from the UDP sender endpoint.
-        // to_v4().to_uint() returns the address in network byte order,
-        // matching what GM_RSSP1_RCV_com_Interface expects.
-        std::uint32_t src_ip   = frame.sender.address().to_v4().to_uint();
+        // to_v4().to_uint() returns the address in host byte order.
+        // The RSSP1 stack's hash table stores IPs in the same format as
+        // inet_addr() (network byte order), so we must convert with htonl().
+        std::uint32_t src_ip   = htonl(frame.sender.address().to_v4().to_uint());
         std::uint16_t src_port = frame.sender.port();
 
         bool matched = adapter_.rcv_com_interface(

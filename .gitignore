@@ -14,7 +14,6 @@
 /GenerateCacheFiles/
 /*.dir/
 Makefile
-
 ## Visual Studio and MSBuild
 /.vs/
 *.vcxproj*
@@ -94,3 +93,5 @@ npm-debug.log*
 # Local config files
 *.local
 *.local.json
+
+tests/integration/*.txt
